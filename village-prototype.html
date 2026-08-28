@@ -105,6 +105,14 @@ button:disabled{opacity:.4;cursor:default}
 
   <div class="col">
   <aside class="panel">
+    <small>КОРАБЛЬ</small>
+    <div class="row"><span id="ship-stage">Деталей собрано</span><b id="ship-count">0 / 6</b></div>
+    <div class="bar"><i id="ship-bar" style="width:0"></i></div>
+    <button id="buy-part" style="margin-top:11px">—</button>
+    <p id="ship-msg" class="msg" style="min-height:auto;margin-top:8px">Первая деталь — чертёж.</p>
+  </aside>
+
+  <aside class="panel">
     <small>ПОСТРОЙКИ</small>
     <div class="build" id="build"></div>
   </aside>
@@ -138,6 +146,17 @@ const BALANCE = {
   flipBase: 5,
   growth: 2,
 
+  // Детали покупаются в любой момент и в любом темпе: каждая монета, ушедшая в корабль,
+  // это монета, которая не осталась работать в деревне. В этом и весь выбор.
+  ship: [
+    {name:'ЧЕРТЁЖ',    cost:   400},
+    {name:'КОРПУС',    cost:  1600},
+    {name:'ДВИГАТЕЛЬ', cost:  4500},
+    {name:'ТОПЛИВО',   cost:  9000},
+    {name:'СКАФАНДР',  cost: 15000},
+    {name:'ЗАПУСК',    cost: 20000},
+  ],
+
   marketMult: 2,           // рыночный бросок: удача умножает выручку на это, промах — делит
   spinMs: 650,             // длительность броска (в классической игре 1550)
   buildings: {
@@ -152,7 +171,7 @@ const BALANCE = {
 const KEY = 'village-proto-v2';
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) } catch { return null } };
 const saved = load() || {};
-const S = Object.assign({gold:0, milk:0, best:0, streak:0, t:Date.now()}, saved);
+const S = Object.assign({gold:0, milk:0, best:0, streak:0, built:0, flips:0, t:Date.now()}, saved);
 // own мержим отдельно: иначе добавленная в BALANCE постройка отсутствует в сохранёнке и даёт NaN.
 S.own = Object.assign(
   Object.fromEntries(Object.keys(BALANCE.buildings).map(k => [k, 0])),
@@ -167,6 +186,9 @@ const price = () => BALANCE.priceBase + S.own.fair;
 const costOf = k => Math.floor(BALANCE.buildings[k].cost * BALANCE.buildings[k].growth ** S.own[k]);
 // Банк серии. Ноль успехов — забирать нечего.
 const bankValue = n => n === 0 ? 0 : Math.floor(BALANCE.flipBase * BALANCE.growth ** (n - 1));
+const shipTotal = () => BALANCE.ship.reduce((sum, part) => sum + part.cost, 0);
+const shipPaid = () => BALANCE.ship.slice(0, S.built).reduce((sum, part) => sum + part.cost, 0);
+const nextPart = () => BALANCE.ship[S.built] ?? null;
 const saleValue = () => Math.floor(Math.floor(S.milk) * price());
 
 if (!Object.keys(saved).length) S.milk = Math.min(BALANCE.startMilk, capacity());
@@ -234,6 +256,13 @@ function render(){
   el('risk').disabled = busy || Math.floor(S.milk) < 1;
   el('risk').textContent = `ПРОДАТЬ: ${Math.floor(saleValue() * BALANCE.marketMult)} ИЛИ ${Math.floor(saleValue() / BALANCE.marketMult)}`;
 
+  const part = nextPart();
+  el('ship-count').textContent = `${S.built} / ${BALANCE.ship.length}`;
+  el('ship-bar').style.width = `${shipPaid() / shipTotal() * 100}%`;
+  el('buy-part').disabled = busy || !part || S.gold < part.cost;
+  el('buy-part').textContent = part ? `${part.name} · ${part.cost}` : 'КОРАБЛЬ ГОТОВ';
+  el('ship-stage').textContent = part ? 'Деталей собрано' : 'Собран целиком';
+
   // Единственный innerHTML в файле, и он собирается только из BALANCE и чисел.
   // Всё, что приходит извне — ники в таблице рекордов — рисуется через textContent.
   el('build').innerHTML = Object.entries(BALANCE.buildings).map(([k, b]) => {
@@ -252,6 +281,7 @@ function flip(onResult){
   busy = true;
   const bet = document.querySelector('input[name="bet"]:checked').value;
   const result = Math.random() < .5 ? 'heads' : 'tails';
+  S.flips++;
   render();
   rotation += 6 * 360 + (result === 'tails' ? 180 : 0) - (rotation % 360);
   el('coin').style.setProperty('--spin', `${BALANCE.spinMs}ms`);
@@ -311,6 +341,18 @@ el('build').onclick = e => {
   S.gold -= cost;
   S.own[k]++;
   el('market-msg').textContent = `${BALANCE.buildings[k].name} построена.`;
+  save(); render();
+};
+
+el('buy-part').onclick = () => {
+  const part = nextPart();
+  if (busy || !part || S.gold < part.cost) return;
+  S.gold -= part.cost;
+  S.built++;
+  const left = nextPart();
+  el('ship-msg').textContent = left
+    ? `${part.name} — готово. Дальше ${left.name.toLowerCase()} за ${left.cost}.`
+    : `${part.name} — готово. Корабль собран за ${S.flips} бросков. Соседи опоздали.`;
   save(); render();
 };
 
