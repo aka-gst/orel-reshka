@@ -109,7 +109,7 @@ const BALANCE = {
   flipBase: 5,
   growth: 2,
 
-  marketBonus: 5,          // +/- к выручке за рискованную продажу
+  marketMult: 2,           // рыночный бросок: удача умножает выручку на это, промах — делит
   spinMs: 650,             // длительность броска (в классической игре 1550)
   buildings: {
     // hint — функция от самого баланса, иначе подписи разъезжаются с числами при первой же настройке.
@@ -176,7 +176,7 @@ function render(){
   el('sell').disabled = busy || !canSell;
   el('risk').disabled = busy || !canSell;
   el('sell').textContent = `ПРОДАТЬ ЗА ${saleValue()}`;
-  el('risk').textContent = `БРОСОК: ${saleValue() + BALANCE.marketBonus} ИЛИ ${Math.max(0, saleValue() - BALANCE.marketBonus)}`;
+  el('risk').textContent = `БРОСОК: ${Math.floor(saleValue() * BALANCE.marketMult)} ИЛИ ${Math.floor(saleValue() / BALANCE.marketMult)}`;
 
   el('build').innerHTML = Object.entries(BALANCE.buildings).map(([k, b]) => {
     const cost = costOf(k);
@@ -226,20 +226,21 @@ el('bank').onclick = () => {
   save(); render();
 };
 
-function sell(bonus, note){
-  const sum = Math.max(0, saleValue() + bonus);
+function sell(mult, note){
+  const sum = Math.floor(saleValue() * mult);
   S.gold += sum;
   S.milk -= Math.floor(S.milk);
   el('market-msg').textContent = `${note} Выручка ${sum}.`;
   save(); render();
 }
 
-el('sell').onclick = () => { if (!busy && Math.floor(S.milk) >= 1) sell(0, 'Продал по цене.') };
+el('sell').onclick = () => { if (!busy && Math.floor(S.milk) >= 1) sell(1, 'Продал по цене.') };
 el('risk').onclick = () => {
   if (busy || Math.floor(S.milk) < 1) return;
   el('market-msg').textContent = 'Торгуешься…';
-  flip(won => sell(won ? BALANCE.marketBonus : -BALANCE.marketBonus,
-    won ? 'Сторговался, цена вверх.' : 'Не сошлись, ушло дешевле.'));
+  // Один бросок на партию: с умножением повторные заходы давали бы бесконечный рост.
+  flip(won => sell(won ? BALANCE.marketMult : 1 / BALANCE.marketMult,
+    won ? 'Сторговался вдвое дороже.' : 'Не сошлись, отдал за полцены.'));
 };
 
 el('build').onclick = e => {
