@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Орёл или решка — aka-gst</title>
 <link rel="stylesheet" href="/game-menu.css?v=1">
-<script defer src="/player-name.js?v=3"></script>
 <script defer src="/pulse/script.js" data-website-id="de024048-c4c3-4639-bbdf-808c558f6d71"></script>
 <style>
 :root{color-scheme:dark;--green:#76ff9f;--violet:#bc70ff;--gold:#ffe06b;--ink:#090510;--dim:#b7a7c4}
@@ -178,9 +177,9 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)) } catch 
 
 // ---- общая таблица рекордов ----
 // Вход не требуется: сессия анонимная, ник — просто строка, которую ввёл игрок.
-let token = '', leaderPeriod = 'today';
+// Запись рекордов временно выключена: страница только читает общий топ.
+let leaderPeriod = 'today';
 const leaders = el('leaders');
-const localDay = () => { const n = new Date(); return `${n.getFullYear()}-${n.getMonth()+1}-${n.getDate()}` };
 
 // Ники пишут игроки, поэтому в разметку они не попадают никогда — только textContent.
 function noteBoard(text){ const li = document.createElement('li'); li.textContent = text; leaders.replaceChildren(li) }
@@ -199,27 +198,6 @@ async function loadLeaders(period = leaderPeriod){
     const data = await fetch(`/api/leaderboard/scores?game=coin-flip&period=${period}&limit=9`).then(r => r.json());
     data.scores?.length ? renderLeaders(data.scores) : noteBoard('Рекордов пока нет');
   } catch { noteBoard('Не удалось загрузить') }
-}
-async function begin(){
-  try {
-    const data = await fetch('/api/leaderboard/session', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({game:'coin-flip'})}).then(r => r.json());
-    token = data.token || '';
-  } catch { token = '' }
-}
-// Метрика та же, что была у классической игры, — длина серии, поэтому старые рекорды сравнимы.
-async function submitStreak(score){
-  const usedToken = token; token = '';
-  const dailyKey = `coin-flip-daily-best:${localDay()}`;
-  let dailyBest = 0;
-  try { dailyBest = Number(localStorage.getItem(dailyKey) || 0) } catch {}
-  if (score < 1 || score <= dailyBest) { await begin(); return }
-  try { localStorage.setItem(dailyKey, String(score)) } catch {}
-  if (!usedToken) { await begin(); return }
-  try {
-    const nickname = await window.requestPlayerName();
-    await fetch('/api/leaderboard/scores', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token: usedToken, nickname, score})});
-    await loadLeaders();
-  } catch {} finally { await begin() }
 }
 document.querySelectorAll('.periods button').forEach(tab => tab.onclick = () => {
   document.querySelectorAll('.periods button').forEach(item => item.classList.toggle('active', item === tab));
@@ -292,7 +270,6 @@ el('go').onclick = () => {
       el('msg').textContent = S.streak
         ? `Не угадал. Серия ${S.streak} сгорела.`
         : 'Не угадал. Новая серия.';
-      void submitStreak(S.streak);
       S.streak = 0;
     }
   });
@@ -306,7 +283,6 @@ el('bank').onclick = () => {
   const sum = bankValue(S.streak);
   S.gold += sum;
   el('msg').textContent = `Забрал ${sum} на серии ${S.streak}.`;
-  void submitStreak(S.streak);
   S.streak = 0;
   save(); render();
 };
@@ -345,7 +321,7 @@ el('reset').onclick = () => {
 };
 
 accrue(); render(); save();
-void begin(); void loadLeaders();
+void loadLeaders();
 setInterval(() => { accrue(); render(); save() }, 1000);
 
 </script>
