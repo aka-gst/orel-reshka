@@ -98,7 +98,7 @@ button:disabled{opacity:.4;cursor:default}
         <input type="radio" id="tails" name="bet" value="tails"><label for="tails">РЕШКА</label>
       </div>
       <button id="go" class="go">БРОСИТЬ МОНЕТУ</button>
-      <p id="msg" class="msg">Бросай монету. Серия растёт — забирай, пока не сорвалась.</p>
+      <p id="msg" class="msg">Бросай монету: удача множит цену молока, промах сжигает партию.</p>
     </div>
   </section>
 
@@ -244,10 +244,12 @@ function render(){
 
   // Монета доступна всегда — это и есть игра, а не награда за накопление.
   el('go').disabled = busy;
-  const capped = S.streak >= BALANCE.warmupCap;
-  el('pot-label').firstChild.textContent = S.streak
-    ? (capped ? `Серия ${S.streak} · разогрев на пределе ` : `Серия ${S.streak} · ещё бросок — ×${warmup(S.streak + 1)} `)
-    : 'Серия ';
+  const capped = S.streak >= BALANCE.warmupCap, atStake = Math.floor(S.milk);
+  el('pot-label').firstChild.textContent = !atStake
+    ? 'Разогрев · терять нечего '
+    : capped
+      ? `Разогрев на пределе · на кону ${atStake} молока `
+      : `Ещё бросок — ×${warmup(S.streak + 1)} · на кону ${atStake} молока `;
   el('pot').textContent = `×${warmup(S.streak)}`;
 
   // Спокойной продажи нет: молоко уходит только через бросок.
@@ -295,11 +297,13 @@ el('go').onclick = () => {
       if (S.streak > S.best) S.best = S.streak;
       el('msg').textContent = S.streak >= BALANCE.warmupCap
         ? `Угадал. Разогрев на пределе: ×${warmup(S.streak)}. Пора продавать.`
-        : `Угадал. Молоко уйдёт с множителем ×${warmup(S.streak)}.`;
+        : `Угадал. Множитель ×${warmup(S.streak)}. Ещё бросок — или на рынок, пока цело.`;
     } else {
-      el('msg').textContent = S.streak
-        ? `Не угадал. Разогрев ×${warmup(S.streak)} сгорел, молоко цело.`
-        : 'Не угадал. Новая серия.';
+      const lost = Math.floor(S.milk);
+      el('msg').textContent = lost
+        ? `Не угадал. Партия ${lost} пропала вместе с разогревом.`
+        : 'Не угадал. Терять было нечего.';
+      S.milk = 0;
       S.streak = 0;
     }
   });
