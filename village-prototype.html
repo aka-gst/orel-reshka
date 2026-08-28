@@ -73,7 +73,7 @@ button:disabled{opacity:.4;cursor:default}
       </div>
       <button id="go" class="go">НА РЫНОК</button>
       <button id="bank" class="bank" disabled>ПРОДАТЬ</button>
-      <p id="msg" class="msg">Накопи молоко и вези его на рынок.</p>
+      <p id="msg" class="msg">Амбар полон. Вези молоко на рынок и торгуйся.</p>
     </div>
   </section>
 
@@ -88,7 +88,8 @@ button:disabled{opacity:.4;cursor:default}
 <script>
 /* ---------- ВСЕ РЫЧАГИ БАЛАНСА ЗДЕСЬ ---------- */
 const BALANCE = {
-  milkPerCowPerMin: 2,     // надой одной коровы в минуту
+  milkPerCowPerMin: 20,    // надой одной коровы в минуту
+  startMilk: 20,           // молоко на первом заходе: монету надо бросать сразу, а не через десять минут
   capPerBarn: 20,          // вместимость одного амбара
   priceBase: 1,            // золота за молоко без ярмарок
   dumpRate: 0.4,           // множитель сдачи перекупщику, без броска
@@ -96,9 +97,10 @@ const BALANCE = {
   growth: 2.0,             // во сколько раз растёт партия за каждый следующий успех
   spinMs: 650,             // длительность броска (в бою сейчас 1550)
   buildings: {
-    cow:  {name:'КОРОВА',  cost:15, growth:1.55, hint:'+2 молока в минуту'},
-    barn: {name:'АМБАР',   cost:25, growth:1.75, hint:'+20 к хранению'},
-    fair: {name:'ЯРМАРКА', cost:40, growth:2.00, hint:'+1 золото за молоко'},
+    // hint — функция от самого баланса, иначе подписи разъезжаются с числами при первой же настройке.
+    cow:  {name:'КОРОВА',  cost:15, growth:1.55, hint:B => `+${B.milkPerCowPerMin} молока в минуту`},
+    barn: {name:'АМБАР',   cost:25, growth:1.75, hint:B => `+${B.capPerBarn} к хранению`},
+    fair: {name:'ЯРМАРКА', cost:40, growth:2.00, hint:() => '+1 золото за молоко'},
   },
 };
 /* ---------------------------------------------- */
@@ -122,6 +124,10 @@ const costOf = k => Math.floor(BALANCE.buildings[k].cost * BALANCE.buildings[k].
 // 0 успехов — сдача перекупщику, 1 — базовая цена, дальше удвоение.
 const multOf = streak => streak === 0 ? BALANCE.dumpRate : BALANCE.firstWin * BALANCE.growth ** (streak - 1);
 const payout = () => run ? Math.floor(run.batch * price() * multOf(run.streak)) : 0;
+
+// Первый заход начинается с полного амбара. Иначе игрок попадает на страницу,
+// где монету нельзя бросить, потому что бросок живёт только внутри похода на рынок.
+if (!Object.keys(saved).length) S.milk = Math.min(BALANCE.startMilk, capacity());
 
 const el = id => document.getElementById(id);
 // Хранилище может быть недоступно (приватный режим, отключённые куки) — игра должна работать и без него.
@@ -160,7 +166,7 @@ function render(){
     const cost = costOf(k);
     return `<article>
       <header>${b.name}<span>${S.own[k]}</span></header>
-      <p>${b.hint}</p>
+      <p>${b.hint(BALANCE)}</p>
       <button data-buy="${k}" ${S.gold < cost ? 'disabled' : ''}>КУПИТЬ · ${cost}</button>
     </article>`;
   }).join('');
