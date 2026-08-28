@@ -7,43 +7,46 @@
 <style>
 :root{color-scheme:dark;--green:#76ff9f;--violet:#bc70ff;--gold:#ffe06b;--ink:#090510;--dim:#b7a7c4}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;padding:16px;background:radial-gradient(circle at 50% 10%,#45205f,#120a1c 48%,var(--ink));color:#f6edff;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
-h1{margin:0 0 4px;font:900 26px/1 system-ui,sans-serif;letter-spacing:-.05em}
+body{margin:0;min-height:100vh;padding:16px;background:radial-gradient(circle at 50% 10%,#45205f,#120a1c 48%,var(--ink));color:#f6edff;font:15px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+h1{margin:0 0 5px;font:900 clamp(30px,3.4vw,44px)/1 system-ui,sans-serif;letter-spacing:-.05em}
 h1 span{color:var(--green);text-shadow:2px 2px #633180}
-.note{margin:0 0 16px;color:var(--dim);font-size:10px;letter-spacing:.06em}
-.wrap{display:grid;align-items:start;grid-template-columns:minmax(190px,1fr) minmax(260px,380px) minmax(210px,1fr);gap:16px;max-width:1100px;margin:0 auto;align-items:start}
-@media(max-width:820px){.wrap{grid-template-columns:1fr}}
-.panel{padding:14px;border:1px solid #a867e066;background:#110b19cc}
-.panel>small{display:block;margin-bottom:9px;color:var(--dim);font-size:9px;letter-spacing:.1em}
-.row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #a867e022}
+.note{margin:0 0 18px;color:var(--dim);font-size:12px;letter-spacing:.06em}
+.wrap{display:grid;align-items:start;grid-template-columns:minmax(210px,1fr) minmax(300px,440px) minmax(230px,1fr);gap:20px;max-width:1320px;margin:0 auto;min-height:calc(100dvh - 150px)}
+.col{display:grid;gap:20px;align-content:start}
+.center{align-self:center}
+.panel{padding:17px;border:1px solid #a867e066;background:#110b19cc}
+.panel>small{display:block;margin-bottom:11px;color:var(--dim);font-size:11px;letter-spacing:.1em}
+.row{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #a867e022}
 .row:last-child{border:0}
 .row b{color:var(--gold);font-weight:700}
 .bar{height:5px;margin-top:6px;background:#2a1b38;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--green);transition:width .3s}
-.center{display:grid;justify-items:center;gap:12px}
-.coin-wrap{width:min(38vw,180px);height:min(38vw,180px);perspective:900px}
+.center{display:grid;justify-items:center;gap:15px}
+.coin-wrap{width:min(34vw,46vh,340px);height:min(34vw,46vh,340px);perspective:1200px;cursor:pointer}
+.coin-wrap:active{transform:scale(.97)}
 .coin{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform var(--spin,650ms) cubic-bezier(.2,.7,.15,1)}
-.side{position:absolute;inset:0;display:grid;place-items:center;border:6px double #ffe88d;border-radius:50%;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:radial-gradient(circle at 32% 24%,#fff8 0 5%,transparent 6%),radial-gradient(circle,#f8d66c,#9d641c 70%);color:#251203;font:900 22px/1 system-ui,sans-serif}
+.side{position:absolute;inset:0;display:grid;place-items:center;border:6px double #ffe88d;border-radius:50%;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:radial-gradient(circle at 32% 24%,#fff8 0 5%,transparent 6%),radial-gradient(circle,#f8d66c,#9d641c 70%);color:#251203;font:900 clamp(30px,4.6vw,60px)/1 system-ui,sans-serif}
 .tails{transform:rotateY(180deg);background:radial-gradient(circle at 32% 24%,#fff 0 5%,transparent 6%),radial-gradient(circle,#d8dce4,#687080 70%)}
 .controls{width:100%;display:grid;gap:8px}
 .choice{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .choice input{position:absolute;opacity:0;pointer-events:none}
-.choice label,button{min-height:40px;display:grid;place-items:center;padding:6px;border:1px solid #725089;background:#171020;color:#eee3f6;font:800 10px ui-monospace,monospace;letter-spacing:.05em;cursor:pointer;text-align:center}
+.choice label,button{min-height:46px;display:grid;place-items:center;padding:7px;border:1px solid #725089;background:#171020;color:#eee3f6;font:800 12px ui-monospace,monospace;letter-spacing:.05em;cursor:pointer;text-align:center}
 .choice input:checked+label{border-color:var(--gold);background:#4d3b13;color:#fff6b7}
 button:disabled{opacity:.4;cursor:default}
-.go{border:2px solid var(--green);background:#194d31;color:#fff;font-size:12px}
-.bank{border:2px solid var(--gold);background:#4d3b13;color:#fff6b7;font-size:12px}
-.pot{text-align:center;font-size:11px;color:var(--dim)}
-.pot b{display:block;margin-top:2px;color:var(--gold);font:900 24px/1 system-ui,sans-serif}
-.msg{min-height:32px;margin:0;text-align:center;font-size:11px;color:#d9cce2}
+.go{border:2px solid var(--green);background:#194d31;color:#fff;font-size:15px}
+.bank{border:2px solid var(--gold);background:#4d3b13;color:#fff6b7;font-size:15px}
+.pot{text-align:center;font-size:13px;color:var(--dim)}
+.pot b{display:block;margin-top:4px;color:var(--gold);font:900 clamp(32px,3vw,44px)/1 system-ui,sans-serif}
+.msg{min-height:34px;margin:0;text-align:center;font-size:13px;color:#d9cce2}
 .build{display:grid;gap:8px}
 .build article{display:grid;gap:3px;padding:9px;border:1px solid #725089;background:#171020}
 .build header{display:flex;justify-content:space-between;gap:8px;font-weight:700;letter-spacing:.05em}
 .build header span{color:var(--green)}
-.build p{margin:0;color:var(--dim);font-size:10px}
-.build button{min-height:30px;margin-top:4px;font-size:10px}
+.build p{margin:0;color:var(--dim);font-size:12px}
+.build button{min-height:36px;margin-top:6px;font-size:12px}
 .reset{margin:16px auto 0;max-width:1100px;display:flex;justify-content:flex-end}
-.reset button{min-height:26px;padding:0 12px;border-color:#5a3a70;color:#8d7c9b;font-size:9px}
+.reset button{min-height:30px;padding:0 14px;border-color:#5a3a70;color:#8d7c9b;font-size:11px}
+@media(max-width:900px){.wrap{grid-template-columns:1fr;min-height:0}.center{align-self:start;order:-1}.coin-wrap{width:min(62vw,34vh);height:min(62vw,34vh)}}
 </style>
 </head>
 <body>
@@ -51,6 +54,7 @@ button:disabled{opacity:.4;cursor:default}
 <p class="note">Прототип для настройки экономики. Все числа — в объекте BALANCE в начале скрипта. Лидерборд отключён намеренно.</p>
 
 <div class="wrap">
+  <div class="col">
   <aside class="panel">
     <small>ДЕРЕВНЯ</small>
     <div class="row"><span>Золото</span><b id="v-gold">0</b></div>
@@ -62,7 +66,7 @@ button:disabled{opacity:.4;cursor:default}
     <div class="row"><span>Лучшая серия</span><b id="v-best">0</b></div>
   </aside>
 
-  <aside class="panel" style="grid-column:1">
+  <aside class="panel">
     <small>РЫНОК</small>
     <div class="row"><span>Выручка за молоко</span><b id="v-sale">0</b></div>
     <div class="build" style="margin-top:9px">
@@ -70,6 +74,7 @@ button:disabled{opacity:.4;cursor:default}
     </div>
     <p id="market-msg" class="msg" style="min-height:auto;margin-top:8px">Копится молоко.</p>
   </aside>
+  </div>
 
   <section class="panel center">
     <small style="justify-self:start">МОНЕТА</small>
@@ -213,6 +218,9 @@ el('go').onclick = () => {
     }
   });
 };
+
+// Тап по самой монете — то же, что кнопка: в игре про монетку это первое, что пробуют.
+el('coin').onclick = () => el('go').click();
 
 el('bank').onclick = () => {
   if (busy || !S.streak) return;
