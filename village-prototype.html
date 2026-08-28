@@ -11,7 +11,7 @@ body{margin:0;min-height:100vh;padding:16px;background:radial-gradient(circle at
 h1{margin:0 0 4px;font:900 26px/1 system-ui,sans-serif;letter-spacing:-.05em}
 h1 span{color:var(--green);text-shadow:2px 2px #633180}
 .note{margin:0 0 16px;color:var(--dim);font-size:10px;letter-spacing:.06em}
-.wrap{display:grid;grid-template-columns:minmax(190px,1fr) minmax(260px,380px) minmax(210px,1fr);gap:16px;max-width:1100px;margin:0 auto;align-items:start}
+.wrap{display:grid;align-items:start;grid-template-columns:minmax(190px,1fr) minmax(260px,380px) minmax(210px,1fr);gap:16px;max-width:1100px;margin:0 auto;align-items:start}
 @media(max-width:820px){.wrap{grid-template-columns:1fr}}
 .panel{padding:14px;border:1px solid #a867e066;background:#110b19cc}
 .panel>small{display:block;margin-bottom:9px;color:var(--dim);font-size:9px;letter-spacing:.1em}
@@ -62,18 +62,28 @@ button:disabled{opacity:.4;cursor:default}
     <div class="row"><span>Лучшая серия</span><b id="v-best">0</b></div>
   </aside>
 
+  <aside class="panel" style="grid-column:1">
+    <small>РЫНОК</small>
+    <div class="row"><span>Выручка за молоко</span><b id="v-sale">0</b></div>
+    <div class="build" style="margin-top:9px">
+      <button id="sell">ПРОДАТЬ</button>
+      <button id="risk">ПРОДАТЬ С БРОСКОМ</button>
+    </div>
+    <p id="market-msg" class="msg" style="min-height:auto;margin-top:8px">Копится молоко.</p>
+  </aside>
+
   <section class="panel center">
-    <small style="justify-self:start">РЫНОК</small>
+    <small style="justify-self:start">МОНЕТА</small>
     <div class="coin-wrap"><div id="coin" class="coin"><div class="side">ОРЁЛ</div><div class="side tails">РЕШКА</div></div></div>
-    <div class="pot" id="pot-label">Партия не собрана<b id="pot">—</b></div>
+    <div class="pot" id="pot-label">Серия <b id="pot">0</b></div>
     <div class="controls">
       <div class="choice">
         <input type="radio" id="heads" name="bet" value="heads" checked><label for="heads">ОРЁЛ</label>
         <input type="radio" id="tails" name="bet" value="tails"><label for="tails">РЕШКА</label>
       </div>
-      <button id="go" class="go">НА РЫНОК</button>
-      <button id="bank" class="bank" disabled>ПРОДАТЬ</button>
-      <p id="msg" class="msg">Амбар полон. Вези молоко на рынок и торгуйся.</p>
+      <button id="go" class="go">БРОСИТЬ МОНЕТУ</button>
+      <button id="bank" class="bank" disabled>ЗАБРАТЬ</button>
+      <p id="msg" class="msg">Бросай монету. Серия растёт — забирай, пока не сорвалась.</p>
     </div>
   </section>
 
@@ -89,13 +99,18 @@ button:disabled{opacity:.4;cursor:default}
 /* ---------- ВСЕ РЫЧАГИ БАЛАНСА ЗДЕСЬ ---------- */
 const BALANCE = {
   milkPerCowPerMin: 20,    // надой одной коровы в минуту
-  startMilk: 20,           // молоко на первом заходе: монету надо бросать сразу, а не через десять минут
   capPerBarn: 20,          // вместимость одного амбара
   priceBase: 1,            // золота за молоко без ярмарок
-  dumpRate: 0.4,           // множитель сдачи перекупщику, без броска
-  firstWin: 1.0,           // множитель после первого удачного торга
-  growth: 2.0,             // во сколько раз растёт партия за каждый следующий успех
-  spinMs: 650,             // длительность броска (в бою сейчас 1550)
+  startMilk: 20,           // молоко на первом заходе
+
+  // Свободный бросок: банк за серию из n успехов = flipBase * growth^(n-1).
+  // Удвоение делает каждый следующий бросок ровно EV-нейтральным: 0.5 * 2n = n.
+  // При линейном росте игра решалась бы за пять секунд — «забирай на первом успехе».
+  flipBase: 5,
+  growth: 2,
+
+  marketBonus: 5,          // +/- к выручке за рискованную продажу
+  spinMs: 650,             // длительность броска (в классической игре 1550)
   buildings: {
     // hint — функция от самого баланса, иначе подписи разъезжаются с числами при первой же настройке.
     cow:  {name:'КОРОВА',  cost:15, growth:1.55, hint:B => `+${B.milkPerCowPerMin} молока в минуту`},
@@ -105,28 +120,26 @@ const BALANCE = {
 };
 /* ---------------------------------------------- */
 
-const KEY = 'village-proto-v1';
+const KEY = 'village-proto-v2';
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) } catch { return null } };
 const saved = load() || {};
-const S = Object.assign({gold:0, milk:0, best:0, t:Date.now()}, saved);
+const S = Object.assign({gold:0, milk:0, best:0, streak:0, t:Date.now()}, saved);
 // own мержим отдельно: иначе добавленная в BALANCE постройка отсутствует в сохранёнке и даёт NaN.
 S.own = Object.assign(
   Object.fromEntries(Object.keys(BALANCE.buildings).map(k => [k, 0])),
   {cow:1, barn:1},
   saved.own || {}
 );
-let run = null, rotation = 0, busy = false;
+let rotation = 0, busy = false;
 
 const capacity = () => BALANCE.capPerBarn * S.own.barn;
 const ratePerMin = () => BALANCE.milkPerCowPerMin * S.own.cow;
 const price = () => BALANCE.priceBase + S.own.fair;
 const costOf = k => Math.floor(BALANCE.buildings[k].cost * BALANCE.buildings[k].growth ** S.own[k]);
-// 0 успехов — сдача перекупщику, 1 — базовая цена, дальше удвоение.
-const multOf = streak => streak === 0 ? BALANCE.dumpRate : BALANCE.firstWin * BALANCE.growth ** (streak - 1);
-const payout = () => run ? Math.floor(run.batch * price() * multOf(run.streak)) : 0;
+// Банк серии. Ноль успехов — забирать нечего.
+const bankValue = n => n === 0 ? 0 : Math.floor(BALANCE.flipBase * BALANCE.growth ** (n - 1));
+const saleValue = () => Math.floor(Math.floor(S.milk) * price());
 
-// Первый заход начинается с полного амбара. Иначе игрок попадает на страницу,
-// где монету нельзя бросить, потому что бросок живёт только внутри похода на рынок.
 if (!Object.keys(saved).length) S.milk = Math.min(BALANCE.startMilk, capacity());
 
 const el = id => document.getElementById(id);
@@ -148,19 +161,22 @@ function render(){
   el('v-cap').textContent   = capacity();
   el('v-price').textContent = price();
   el('v-best').textContent  = S.best;
+  el('v-sale').textContent  = saleValue();
 
-  const ready = Math.floor(S.milk);
-  // Во время торга go — это «торговаться», а не «на рынок»; busy держит обе кнопки на время броска,
-  // иначе секундный тик включит их прямо в полёте монеты.
-  el('go').disabled   = busy || (!run && ready < 1);
-  el('go').textContent = run ? `ТОРГОВАТЬСЯ (×${multOf(run.streak + 1)})` : `НА РЫНОК (${ready} молока)`;
-  el('bank').disabled = busy || !run;
-  el('bank').textContent = run ? `ПРОДАТЬ ЗА ${payout()}` : 'ПРОДАТЬ';
+  // Монета доступна всегда — это и есть игра, а не награда за накопление.
+  el('go').disabled   = busy;
+  el('bank').disabled = busy || S.streak === 0;
+  el('bank').textContent = S.streak ? `ЗАБРАТЬ ${bankValue(S.streak)}` : 'ЗАБРАТЬ';
+  el('pot-label').firstChild.textContent = S.streak
+    ? `Серия ${S.streak} · следующий бросок удвоит до ${bankValue(S.streak + 1)} `
+    : 'Серия ';
+  el('pot').textContent = bankValue(S.streak);
 
-  el('pot-label').firstChild.textContent = run
-    ? `Партия ${run.batch} · серия ${run.streak} · ×${multOf(run.streak)}`
-    : 'Партия не собрана';
-  el('pot').textContent = run ? payout() : '—';
+  const canSell = Math.floor(S.milk) >= 1;
+  el('sell').disabled = busy || !canSell;
+  el('risk').disabled = busy || !canSell;
+  el('sell').textContent = `ПРОДАТЬ ЗА ${saleValue()}`;
+  el('risk').textContent = `БРОСОК: ${saleValue() + BALANCE.marketBonus} ИЛИ ${Math.max(0, saleValue() - BALANCE.marketBonus)}`;
 
   el('build').innerHTML = Object.entries(BALANCE.buildings).map(([k, b]) => {
     const cost = costOf(k);
@@ -172,53 +188,60 @@ function render(){
   }).join('');
 }
 
-function toMarket(){
-  if (run || busy) return;
-  const batch = Math.floor(S.milk);
-  if (batch < 1) return;
-  S.milk -= batch;
-  run = {batch, streak: 0};
-  el('msg').textContent = `Собрана партия ${batch}. Перекупщик даёт ${payout()}. Торговаться — удвоение или всё пропало.`;
-  save(); render();
-}
-
-function haggle(){
-  if (busy || !run) return;
+// Единственная анимация броска на обе механики: свободную серию и рыночный торг.
+function flip(onResult){
+  if (busy) return;
   busy = true;
   const bet = document.querySelector('input[name="bet"]:checked').value;
   const result = Math.random() < .5 ? 'heads' : 'tails';
-  el('go').disabled = el('bank').disabled = true;
-  el('msg').textContent = 'Монета в воздухе…';
+  render();
   rotation += 6 * 360 + (result === 'tails' ? 180 : 0) - (rotation % 360);
   el('coin').style.setProperty('--spin', `${BALANCE.spinMs}ms`);
   el('coin').style.transform = `rotateY(${rotation}deg)`;
-  setTimeout(() => {
-    busy = false;
-    if (result === bet) {
-      run.streak++;
-      if (run.streak > S.best) S.best = run.streak;
-      el('msg').textContent = `Сторговался. Партия идёт за ${payout()}. Ещё раз — или продавай.`;
-    } else {
-      el('msg').textContent = `Не сошлись в цене. Партия ${run.batch} пропала.`;
-      run = null;
-    }
-    save(); render();
-  }, BALANCE.spinMs + 60);
+  setTimeout(() => { busy = false; onResult(result === bet); save(); render() }, BALANCE.spinMs + 60);
 }
 
-function bank(){
-  if (busy || !run) return;
-  const sum = payout();
+el('go').onclick = () => {
+  el('msg').textContent = 'Монета в воздухе…';
+  flip(won => {
+    if (won) {
+      S.streak++;
+      if (S.streak > S.best) S.best = S.streak;
+      el('msg').textContent = `Угадал. Банк ${bankValue(S.streak)} — забирай или бросай дальше.`;
+    } else {
+      el('msg').textContent = S.streak
+        ? `Не угадал. Серия ${S.streak} сгорела.`
+        : 'Не угадал. Новая серия.';
+      S.streak = 0;
+    }
+  });
+};
+
+el('bank').onclick = () => {
+  if (busy || !S.streak) return;
+  const sum = bankValue(S.streak);
   S.gold += sum;
-  el('msg').textContent = run.streak === 0
-    ? `Сдал перекупщику за ${sum}. Дёшево, зато наверняка.`
-    : `Продал за ${sum} на серии ${run.streak}.`;
-  run = null;
+  el('msg').textContent = `Забрал ${sum} на серии ${S.streak}.`;
+  S.streak = 0;
+  save(); render();
+};
+
+function sell(bonus, note){
+  const sum = Math.max(0, saleValue() + bonus);
+  S.gold += sum;
+  S.milk -= Math.floor(S.milk);
+  el('market-msg').textContent = `${note} Выручка ${sum}.`;
   save(); render();
 }
 
-el('go').onclick    = () => run ? haggle() : toMarket();
-el('bank').onclick  = bank;
+el('sell').onclick = () => { if (!busy && Math.floor(S.milk) >= 1) sell(0, 'Продал по цене.') };
+el('risk').onclick = () => {
+  if (busy || Math.floor(S.milk) < 1) return;
+  el('market-msg').textContent = 'Торгуешься…';
+  flip(won => sell(won ? BALANCE.marketBonus : -BALANCE.marketBonus,
+    won ? 'Сторговался, цена вверх.' : 'Не сошлись, ушло дешевле.'));
+};
+
 el('build').onclick = e => {
   const k = e.target.dataset?.buy;
   if (!k || busy) return;
@@ -226,9 +249,10 @@ el('build').onclick = e => {
   if (S.gold < cost) return;
   S.gold -= cost;
   S.own[k]++;
-  el('msg').textContent = `${BALANCE.buildings[k].name} построена.`;
+  el('market-msg').textContent = `${BALANCE.buildings[k].name} построена.`;
   save(); render();
 };
+
 el('reset').onclick = () => {
   if (!confirm('Сбросить прогресс прототипа?')) return;
   try { localStorage.removeItem(KEY) } catch {}
@@ -237,6 +261,7 @@ el('reset').onclick = () => {
 
 accrue(); render(); save();
 setInterval(() => { accrue(); render(); save() }, 1000);
+
 </script>
 </body>
 </html>
