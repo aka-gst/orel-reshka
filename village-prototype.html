@@ -98,7 +98,6 @@ button:disabled{opacity:.4;cursor:default}
         <input type="radio" id="tails" name="bet" value="tails"><label for="tails">РЕШКА</label>
       </div>
       <button id="go" class="go">БРОСИТЬ МОНЕТУ</button>
-      <button id="bank" class="bank" disabled>ЗАБРАТЬ</button>
       <p id="msg" class="msg">Бросай монету. Серия растёт — забирай, пока не сорвалась.</p>
     </div>
   </section>
@@ -140,11 +139,11 @@ const BALANCE = {
   priceBase: 1,            // золота за молоко без ярмарок
   startMilk: 20,           // молоко на первом заходе
 
-  // Свободный бросок: банк за серию из n успехов = flipBase * growth^(n-1).
-  // Удвоение делает каждый следующий бросок ровно EV-нейтральным: 0.5 * 2n = n.
-  // При линейном росте игра решалась бы за пять секунд — «забирай на первом успехе».
-  flipBase: 5,
+  // Свободный бросок золота НЕ даёт: серия — это множитель на следующую продажу молока.
+  // Так монета ничего не печатает из воздуха, но и не устаревает: множитель растёт вместе с партией.
+  // Удвоение оставляет каждый следующий бросок EV-нейтральным, решает не арифметика, а характер.
   growth: 2,
+  warmupCap: 5,           // потолок разогрева: 2^5 = ×32
 
   // Детали покупаются в любой момент и в любом темпе: каждая монета, ушедшая в корабль,
   // это монета, которая не осталась работать в деревне. В этом и весь выбор.
@@ -184,12 +183,12 @@ const capacity = () => BALANCE.capPerBarn * S.own.barn;
 const ratePerMin = () => BALANCE.milkPerCowPerMin * S.own.cow;
 const price = () => BALANCE.priceBase + S.own.fair;
 const costOf = k => Math.floor(BALANCE.buildings[k].cost * BALANCE.buildings[k].growth ** S.own[k]);
-// Банк серии. Ноль успехов — забирать нечего.
-const bankValue = n => n === 0 ? 0 : Math.floor(BALANCE.flipBase * BALANCE.growth ** (n - 1));
+// Разогрев: множитель на продажу. Ноль успехов — обычная цена.
+const warmup = n => BALANCE.growth ** Math.min(n, BALANCE.warmupCap);
 const shipTotal = () => BALANCE.ship.reduce((sum, part) => sum + part.cost, 0);
 const shipPaid = () => BALANCE.ship.slice(0, S.built).reduce((sum, part) => sum + part.cost, 0);
 const nextPart = () => BALANCE.ship[S.built] ?? null;
-const saleValue = () => Math.floor(Math.floor(S.milk) * price());
+const saleValue = () => Math.floor(Math.floor(S.milk) * price() * warmup(S.streak));
 
 if (!Object.keys(saved).length) S.milk = Math.min(BALANCE.startMilk, capacity());
 
@@ -244,13 +243,12 @@ function render(){
   el('v-sale').textContent  = saleValue();
 
   // Монета доступна всегда — это и есть игра, а не награда за накопление.
-  el('go').disabled   = busy;
-  el('bank').disabled = busy || S.streak === 0;
-  el('bank').textContent = S.streak ? `ЗАБРАТЬ ${bankValue(S.streak)}` : 'ЗАБРАТЬ';
+  el('go').disabled = busy;
+  const capped = S.streak >= BALANCE.warmupCap;
   el('pot-label').firstChild.textContent = S.streak
-    ? `Серия ${S.streak} · следующий бросок удвоит до ${bankValue(S.streak + 1)} `
+    ? (capped ? `Серия ${S.streak} · разогрев на пределе ` : `Серия ${S.streak} · ещё бросок — ×${warmup(S.streak + 1)} `)
     : 'Серия ';
-  el('pot').textContent = bankValue(S.streak);
+  el('pot').textContent = `×${warmup(S.streak)}`;
 
   // Спокойной продажи нет: молоко уходит только через бросок.
   el('risk').disabled = busy || Math.floor(S.milk) < 1;
@@ -295,10 +293,12 @@ el('go').onclick = () => {
     if (won) {
       S.streak++;
       if (S.streak > S.best) S.best = S.streak;
-      el('msg').textContent = `Угадал. Банк ${bankValue(S.streak)} — забирай или бросай дальше.`;
+      el('msg').textContent = S.streak >= BALANCE.warmupCap
+        ? `Угадал. Разогрев на пределе: ×${warmup(S.streak)}. Пора продавать.`
+        : `Угадал. Молоко уйдёт с множителем ×${warmup(S.streak)}.`;
     } else {
       el('msg').textContent = S.streak
-        ? `Не угадал. Серия ${S.streak} сгорела.`
+        ? `Не угадал. Разогрев ×${warmup(S.streak)} сгорел, молоко цело.`
         : 'Не угадал. Новая серия.';
       S.streak = 0;
     }
@@ -308,19 +308,11 @@ el('go').onclick = () => {
 // Тап по самой монете — то же, что кнопка: в игре про монетку это первое, что пробуют.
 el('coin').onclick = () => el('go').click();
 
-el('bank').onclick = () => {
-  if (busy || !S.streak) return;
-  const sum = bankValue(S.streak);
-  S.gold += sum;
-  el('msg').textContent = `Забрал ${sum} на серии ${S.streak}.`;
-  S.streak = 0;
-  save(); render();
-};
-
 function sell(mult, note){
   const sum = Math.floor(saleValue() * mult);
   S.gold += sum;
   S.milk -= Math.floor(S.milk);
+  S.streak = 0;   // разогрев тратится на сделку
   el('market-msg').textContent = `${note} Выручка ${sum}.`;
   save(); render();
 }
