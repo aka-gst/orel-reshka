@@ -66,8 +66,7 @@ button:disabled{opacity:.4;cursor:default}
     <small>РЫНОК</small>
     <div class="row"><span>Выручка за молоко</span><b id="v-sale">0</b></div>
     <div class="build" style="margin-top:9px">
-      <button id="sell">ПРОДАТЬ</button>
-      <button id="risk">ПРОДАТЬ С БРОСКОМ</button>
+      <button id="risk">ПРОДАТЬ</button>
     </div>
     <p id="market-msg" class="msg" style="min-height:auto;margin-top:8px">Копится молоко.</p>
   </aside>
@@ -172,11 +171,9 @@ function render(){
     : 'Серия ';
   el('pot').textContent = bankValue(S.streak);
 
-  const canSell = Math.floor(S.milk) >= 1;
-  el('sell').disabled = busy || !canSell;
-  el('risk').disabled = busy || !canSell;
-  el('sell').textContent = `ПРОДАТЬ ЗА ${saleValue()}`;
-  el('risk').textContent = `БРОСОК: ${Math.floor(saleValue() * BALANCE.marketMult)} ИЛИ ${Math.floor(saleValue() / BALANCE.marketMult)}`;
+  // Спокойной продажи нет: молоко уходит только через бросок.
+  el('risk').disabled = busy || Math.floor(S.milk) < 1;
+  el('risk').textContent = `ПРОДАТЬ: ${Math.floor(saleValue() * BALANCE.marketMult)} ИЛИ ${Math.floor(saleValue() / BALANCE.marketMult)}`;
 
   el('build').innerHTML = Object.entries(BALANCE.buildings).map(([k, b]) => {
     const cost = costOf(k);
@@ -234,7 +231,6 @@ function sell(mult, note){
   save(); render();
 }
 
-el('sell').onclick = () => { if (!busy && Math.floor(S.milk) >= 1) sell(1, 'Продал по цене.') };
 el('risk').onclick = () => {
   if (busy || Math.floor(S.milk) < 1) return;
   el('market-msg').textContent = 'Торгуешься…';
