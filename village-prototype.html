@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Деревня — грейбокс экономики</title>
+<title>Орёл или решка — aka-gst</title>
+<link rel="stylesheet" href="/game-menu.css?v=1">
+<script defer src="/player-name.js?v=3"></script>
+<script defer src="/pulse/script.js" data-website-id="de024048-c4c3-4639-bbdf-808c558f6d71"></script>
 <style>
 :root{color-scheme:dark;--green:#76ff9f;--violet:#bc70ff;--gold:#ffe06b;--ink:#090510;--dim:#b7a7c4}
 *{box-sizing:border-box}
@@ -44,14 +47,24 @@ button:disabled{opacity:.4;cursor:default}
 .build header span{color:var(--green)}
 .build p{margin:0;color:var(--dim);font-size:12px}
 .build button{min-height:36px;margin-top:6px;font-size:12px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.periods{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:0 0 10px}
+.periods button{min-height:30px;padding:4px;font-size:10px;color:var(--dim)}
+.periods button.active{border-color:var(--green);color:var(--green);background:#153323}
+#leaders{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+#leaders li{display:flex;justify-content:space-between;gap:8px;font-size:12px}
+#leaders b{color:var(--green)}
 .reset{margin:16px auto 0;max-width:1100px;display:flex;justify-content:flex-end}
 .reset button{min-height:30px;padding:0 14px;border-color:#5a3a70;color:#8d7c9b;font-size:11px}
 @media(max-width:900px){.wrap{grid-template-columns:1fr;min-height:0}.center{align-self:start;order:-1}.coin-wrap{width:min(62vw,34vh);height:min(62vw,34vh)}}
 </style>
 </head>
 <body>
-<h1><span>ДЕРЕВНЯ</span> / ГРЕЙБОКС</h1>
-<p class="note">Прототип для настройки экономики. Все числа — в объекте BALANCE в начале скрипта. Лидерборд отключён намеренно.</p>
+<header class="top">
+  <h1><span>ОРЁЛ</span> / РЕШКА</h1>
+  <a class="game-home-menu" href="/">НА ГЛАВНУЮ</a>
+</header>
+<p class="note">Бросай монету и расти деревню. Молоко продаётся только через бросок.</p>
 
 <div class="wrap">
   <div class="col">
@@ -91,10 +104,23 @@ button:disabled{opacity:.4;cursor:default}
     </div>
   </section>
 
+  <div class="col">
   <aside class="panel">
     <small>ПОСТРОЙКИ</small>
     <div class="build" id="build"></div>
   </aside>
+
+  <aside class="panel">
+    <small>ГЛОБАЛЬНЫЙ ТОП</small>
+    <div class="periods" aria-label="Период рейтинга">
+      <button class="active" data-period="today">СЕГОДНЯ</button>
+      <button data-period="week">НЕДЕЛЯ</button>
+      <button data-period="month">МЕСЯЦ</button>
+      <button data-period="all">ВСЁ ВРЕМЯ</button>
+    </div>
+    <ol id="leaders"><li>Рекордов пока нет</li></ol>
+  </aside>
+  </div>
 </div>
 
 <div class="reset"><button id="reset">СБРОСИТЬ ПРОГРЕСС</button></div>
@@ -150,6 +176,56 @@ const el = id => document.getElementById(id);
 // Хранилище может быть недоступно (приватный режим, отключённые куки) — игра должна работать и без него.
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)) } catch {} };
 
+// ---- общая таблица рекордов ----
+// Вход не требуется: сессия анонимная, ник — просто строка, которую ввёл игрок.
+let token = '', leaderPeriod = 'today';
+const leaders = el('leaders');
+const localDay = () => { const n = new Date(); return `${n.getFullYear()}-${n.getMonth()+1}-${n.getDate()}` };
+
+// Ники пишут игроки, поэтому в разметку они не попадают никогда — только textContent.
+function noteBoard(text){ const li = document.createElement('li'); li.textContent = text; leaders.replaceChildren(li) }
+function renderLeaders(scores){
+  leaders.replaceChildren(...scores.map((e, i) => {
+    const li = document.createElement('li'), who = document.createElement('span'), score = document.createElement('b');
+    who.textContent = `${i+1}. ${e.nickname}`;
+    score.textContent = e.score;
+    li.append(who, score);
+    return li;
+  }));
+}
+async function loadLeaders(period = leaderPeriod){
+  leaderPeriod = period;
+  try {
+    const data = await fetch(`/api/leaderboard/scores?game=coin-flip&period=${period}&limit=9`).then(r => r.json());
+    data.scores?.length ? renderLeaders(data.scores) : noteBoard('Рекордов пока нет');
+  } catch { noteBoard('Не удалось загрузить') }
+}
+async function begin(){
+  try {
+    const data = await fetch('/api/leaderboard/session', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({game:'coin-flip'})}).then(r => r.json());
+    token = data.token || '';
+  } catch { token = '' }
+}
+// Метрика та же, что была у классической игры, — длина серии, поэтому старые рекорды сравнимы.
+async function submitStreak(score){
+  const usedToken = token; token = '';
+  const dailyKey = `coin-flip-daily-best:${localDay()}`;
+  let dailyBest = 0;
+  try { dailyBest = Number(localStorage.getItem(dailyKey) || 0) } catch {}
+  if (score < 1 || score <= dailyBest) { await begin(); return }
+  try { localStorage.setItem(dailyKey, String(score)) } catch {}
+  if (!usedToken) { await begin(); return }
+  try {
+    const nickname = await window.requestPlayerName();
+    await fetch('/api/leaderboard/scores', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token: usedToken, nickname, score})});
+    await loadLeaders();
+  } catch {} finally { await begin() }
+}
+document.querySelectorAll('.periods button').forEach(tab => tab.onclick = () => {
+  document.querySelectorAll('.periods button').forEach(item => item.classList.toggle('active', item === tab));
+  void loadLeaders(tab.dataset.period);
+});
+
 function accrue(){
   const now = Date.now();
   const minutes = Math.max(0, (now - S.t) / 60000);
@@ -180,6 +256,8 @@ function render(){
   el('risk').disabled = busy || Math.floor(S.milk) < 1;
   el('risk').textContent = `ПРОДАТЬ: ${Math.floor(saleValue() * BALANCE.marketMult)} ИЛИ ${Math.floor(saleValue() / BALANCE.marketMult)}`;
 
+  // Единственный innerHTML в файле, и он собирается только из BALANCE и чисел.
+  // Всё, что приходит извне — ники в таблице рекордов — рисуется через textContent.
   el('build').innerHTML = Object.entries(BALANCE.buildings).map(([k, b]) => {
     const cost = costOf(k);
     return `<article>
@@ -214,6 +292,7 @@ el('go').onclick = () => {
       el('msg').textContent = S.streak
         ? `Не угадал. Серия ${S.streak} сгорела.`
         : 'Не угадал. Новая серия.';
+      void submitStreak(S.streak);
       S.streak = 0;
     }
   });
@@ -227,6 +306,7 @@ el('bank').onclick = () => {
   const sum = bankValue(S.streak);
   S.gold += sum;
   el('msg').textContent = `Забрал ${sum} на серии ${S.streak}.`;
+  void submitStreak(S.streak);
   S.streak = 0;
   save(); render();
 };
@@ -265,6 +345,7 @@ el('reset').onclick = () => {
 };
 
 accrue(); render(); save();
+void begin(); void loadLeaders();
 setInterval(() => { accrue(); render(); save() }, 1000);
 
 </script>
