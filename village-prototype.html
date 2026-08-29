@@ -7,23 +7,24 @@
 <link rel="stylesheet" href="/game-menu.css?v=1">
 <script defer src="/pulse/script.js" data-website-id="de024048-c4c3-4639-bbdf-808c558f6d71"></script>
 <style>
-:root{color-scheme:dark;--green:#76ff9f;--violet:#bc70ff;--gold:#ffe06b;--ink:#090510;--dim:#b7a7c4}
+:root{color-scheme:dark;--green:#7fd98a;--gold:#f2c14e;--ink:#0c1017;--panel:#141b26;--rule:#2b3849;--dim:#8ea0b5;--felt:#16342a;--felt-edge:#2e5a45}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;padding:16px;background:radial-gradient(circle at 50% 10%,#45205f,#120a1c 48%,var(--ink));color:#f6edff;font:15px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+body{margin:0;min-height:100vh;padding:16px;background:radial-gradient(ellipse 120% 70% at 50% 118%,#26382c,#151d29 46%,var(--ink));color:#e7eef6;font:15px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
 h1{margin:0 0 5px;font:900 clamp(30px,3.4vw,44px)/1 system-ui,sans-serif;letter-spacing:-.05em}
-h1 span{color:var(--green);text-shadow:2px 2px #633180}
+h1 span{color:var(--gold);text-shadow:2px 2px #6b4a15}
 .note{margin:0 0 18px;color:var(--dim);font-size:12px;letter-spacing:.06em}
 .wrap{display:grid;align-items:start;grid-template-columns:minmax(210px,1fr) minmax(300px,440px) minmax(230px,1fr);gap:20px;max-width:1320px;margin:0 auto;}
 .col{display:grid;gap:20px;align-content:start}
 .center{align-self:center}
-.panel{padding:17px;border:1px solid #a867e066;background:#110b19cc}
+.panel{padding:17px;border:1px solid var(--rule);background:#141b26cc}
 .panel>small{display:block;margin-bottom:11px;color:var(--dim);font-size:11px;letter-spacing:.1em}
-.row{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #a867e022}
+.row{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #2b384966}
 .row:last-child{border:0}
 .row b{color:var(--gold);font-weight:700}
-.bar{height:5px;margin-top:6px;background:#2a1b38;overflow:hidden}
+.scene{width:100%;height:auto;display:block;margin-bottom:11px;border:1px solid var(--rule);background:linear-gradient(#111a28,#1b2a22 62%,#22301f)}
+.bar{height:5px;margin-top:6px;background:#222d3c;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--green);transition:width .3s}
-.center{display:grid;justify-items:center;gap:15px}
+.center{display:grid;justify-items:center;gap:15px;background:linear-gradient(#1a3b2f,var(--felt));border-color:var(--felt-edge);box-shadow:inset 0 0 60px #00000055}
 .coin-wrap{width:min(34vw,46vh,340px);height:min(34vw,46vh,340px);perspective:1200px;cursor:pointer}
 .coin-wrap:active{transform:scale(.97)}
 .coin{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform var(--spin,650ms) cubic-bezier(.2,.7,.15,1)}
@@ -32,16 +33,16 @@ h1 span{color:var(--green);text-shadow:2px 2px #633180}
 .controls{width:100%;display:grid;gap:8px}
 .choice{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .choice input{position:absolute;opacity:0;pointer-events:none}
-.choice label,button{min-height:46px;display:grid;place-items:center;padding:7px;border:1px solid #725089;background:#171020;color:#eee3f6;font:800 12px ui-monospace,monospace;letter-spacing:.05em;cursor:pointer;text-align:center}
-.choice input:checked+label{border-color:var(--gold);background:#4d3b13;color:#fff6b7}
+.choice label,button{min-height:46px;display:grid;place-items:center;padding:7px;border:1px solid #35455a;background:#1a2432;color:#dfe7f0;font:800 12px ui-monospace,monospace;letter-spacing:.05em;cursor:pointer;text-align:center}
+.choice input:checked+label{border-color:var(--gold);background:#3c2f10;color:#ffe9a8}
 button:disabled{opacity:.4;cursor:default}
-.go{border:2px solid var(--green);background:#194d31;color:#fff;font-size:15px}
+.go{border:2px solid var(--green);background:#1d4a30;color:#fff;font-size:15px}
 .bank{border:2px solid var(--gold);background:#4d3b13;color:#fff6b7;font-size:15px}
 .pot{text-align:center;font-size:13px;color:var(--dim)}
 .pot b{display:block;margin-top:4px;color:var(--gold);font:900 clamp(32px,3vw,44px)/1 system-ui,sans-serif}
-.msg{min-height:34px;margin:0;text-align:center;font-size:13px;color:#d9cce2}
+.msg{min-height:34px;margin:0;text-align:center;font-size:13px;color:#b9c6d4}
 .build{display:grid;gap:8px}
-.build article{display:grid;gap:3px;padding:9px;border:1px solid #725089;background:#171020}
+.build article{display:grid;gap:3px;padding:9px;border:1px solid #35455a;background:#1a2432}
 .build header{display:flex;justify-content:space-between;gap:8px;font-weight:700;letter-spacing:.05em}
 .build header span{color:var(--green)}
 .build p{margin:0;color:var(--dim);font-size:12px}
@@ -49,25 +50,25 @@ button:disabled{opacity:.4;cursor:default}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .periods{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:0 0 10px}
 .periods button{min-height:30px;padding:4px;font-size:10px;color:var(--dim)}
-.periods button.active{border-color:var(--green);color:var(--green);background:#153323}
+.periods button.active{border-color:var(--green);color:var(--green);background:#18321f}
 #leaders{margin:0;padding:0;list-style:none;display:grid;gap:8px}
 #leaders li{display:flex;justify-content:space-between;gap:8px;font-size:12px}
 #leaders b{color:var(--green)}
 .reset{display:flex;justify-content:flex-end}
-.reset button{min-height:30px;padding:0 14px;border-color:#5a3a70;color:#8d7c9b;font-size:11px}
+.reset button{min-height:30px;padding:0 14px;border-color:#33415a;color:#6c7d92;font-size:11px}
 @media(max-width:900px){.wrap{grid-template-columns:1fr;min-height:0}.center{align-self:start;order:-1}.coin-wrap{width:min(62vw,34vh);height:min(62vw,34vh)}}
 .top-right{display:flex;align-items:center;gap:9px}
-#help{min-height:0;width:32px;height:32px;padding:0;font-size:15px;border-color:#725089;color:var(--dim)}
-.intro{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:#090510e8;backdrop-filter:blur(3px)}
+#help{min-height:0;width:32px;height:32px;padding:0;font-size:15px;border-color:#35455a;color:var(--dim)}
+.intro{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:#0c1017e8;backdrop-filter:blur(3px)}
 .intro[hidden]{display:none}
-.intro-card{max-width:560px;padding:clamp(20px,3vw,34px);border:1px solid var(--green);background:#130c1d;max-height:90dvh;overflow-y:auto}
+.intro-card{max-width:560px;padding:clamp(20px,3vw,34px);border:1px solid var(--green);background:#141b26;max-height:90dvh;overflow-y:auto}
 .intro-card h2{margin:0 0 10px;font:900 clamp(24px,3vw,34px)/1 system-ui,sans-serif;color:var(--green);letter-spacing:-.03em}
-.intro-card p{margin:0 0 14px;color:#d9cce2}
+.intro-card p{margin:0 0 14px;color:#cdd8e4}
 .intro-card ol{margin:0 0 16px;padding-left:20px;display:grid;gap:9px}
-.intro-card li{color:#d9cce2}
+.intro-card li{color:#cdd8e4}
 .intro-card b{color:var(--gold);font-weight:700}
 .intro-note{font-size:13px;color:var(--dim)!important}
-#intro-go{width:100%;border:2px solid var(--green);background:#194d31;color:#fff;font-size:14px}
+#intro-go{width:100%;border:2px solid var(--green);background:#1d4a30;color:#fff;font-size:14px}
 @media(min-width:901px){
   /* Экран игры, а не документ: страница не крутится, длинная колонка крутится внутри себя. */
   html,body{height:100%;overflow:hidden}
@@ -108,6 +109,7 @@ button:disabled{opacity:.4;cursor:default}
   <div class="col">
   <aside class="panel">
     <small>ДЕРЕВНЯ</small>
+    <svg id="scene" class="scene" viewBox="0 0 300 96" role="img" aria-label="Вид деревни"></svg>
     <div class="row"><span>Золото</span><b id="v-gold">0</b></div>
     <div class="row"><span>Молоко</span><b id="v-milk">0</b></div>
     <div class="bar"><i id="v-bar" style="width:0"></i></div>
@@ -315,6 +317,7 @@ function render(){
   el('risk').disabled = busy || Math.floor(S.milk) < 1;
   el('risk').textContent = `ПРОДАТЬ: ${Math.floor(saleValue() * BALANCE.marketMult)} ИЛИ ${Math.floor(saleValue() / BALANCE.marketMult)}`;
 
+  drawScene();
   el('v-debt').textContent = S.debt;
   const offer = loanOffer();
   el('loan').disabled = busy || S.debt > 0 || !offer;
@@ -328,7 +331,42 @@ function render(){
   el('ship-stage').textContent = part ? 'Деталей собрано' : 'Собран целиком';
   if (lastPart() && S.debt > 0) el('ship-msg').textContent = 'С долгом не улетают — сначала рассчитайся с соседями.';
 
-  // Единственный innerHTML в файле, и он собирается только из BALANCE и чисел.
+  // Сцена собирается из чисел состояния — внешнего текста здесь нет, как и в постройках ниже.
+function drawScene(){
+  const G = 78;                                   // линия земли
+  // Зоны не пересекаются: дома слева, выпас в середине, ярмарка правее, стартовая площадка с краю.
+  const hut = (x, h) => `<path d="M${x} ${G} v-${h} l10 -8 l10 8 v${h} z" fill="#3a2f22" stroke="#5b4630"/>`
+    + `<rect x="${x + 7}" y="${G - h * 0.6}" width="6" height="${h * 0.5}" fill="#f2c14e" opacity=".9"/>`;
+  const cow = x => `<ellipse cx="${x}" cy="${G - 4}" rx="5" ry="3" fill="#e8ecf1"/>`
+    + `<circle cx="${x + 4.5}" cy="${G - 6.5}" r="2" fill="#e8ecf1"/>`
+    + `<rect x="${x - 3}" y="${G - 2}" width="1.6" height="2" fill="#39404a"/><rect x="${x + 2}" y="${G - 2}" width="1.6" height="2" fill="#39404a"/>`;
+  const stall = x => `<rect x="${x}" y="${G - 9}" width="16" height="9" fill="#262f3d" stroke="#5b4630"/>`
+    + `<path d="M${x - 2} ${G - 9} h20 l-3 -5 h-14 z" fill="#a2452f"/>`;
+
+  // Ракета растёт деталь за деталью: чертёж, корпус, дюза, бак, иллюминатор, оперение с огнём.
+  const B = 262;
+  const rocket = n => {
+    if (!n) return '';
+    if (n === 1) return `<rect x="${B-9}" y="${G-11}" width="18" height="11" fill="#22303f" stroke="#5b4630"/><path d="M${B-6} ${G-8} h12 M${B-6} ${G-5} h12" stroke="#8ea0b5" stroke-width="1"/>`;
+    let g = `<path d="M${B-7} ${G} v-16 q7 -11 14 0 v16 z" fill="#b9c5d3"/>`;
+    if (n >= 3) g += `<path d="M${B-5} ${G} h10 l-2 5 h-6 z" fill="#7a8797"/>`;
+    if (n >= 4) g += `<rect x="${B-7}" y="${G-9}" width="14" height="3.5" fill="#8d99a8"/>`;
+    if (n >= 5) g += `<circle cx="${B}" cy="${G-15}" r="3.2" fill="#0c1017" stroke="#e8ecf1"/>`;
+    if (n >= 6) g += `<path d="M${B-7} ${G-4} l-6 8 h6 z" fill="#9aa6b5"/><path d="M${B+7} ${G-4} l6 8 h-6 z" fill="#9aa6b5"/>`
+      + `<path d="M${B-4} ${G+5} q4 12 8 0 q-4 5 -8 0z" fill="#f2c14e"/>`;
+    return g;
+  };
+
+  const huts = Math.min(S.own.barn, 3), cows = Math.min(S.own.cow, 6), fairs = Math.min(S.own.fair, 2);
+  let g = `<path d="M0 ${G} h300 v${96-G} h-300z" fill="#22301f"/>`;
+  for (let i = 0; i < huts; i++) g += hut(10 + i * 24, 14 + i * 3);
+  for (let i = 0; i < cows; i++) g += cow(100 + i * 16);
+  for (let i = 0; i < fairs; i++) g += stall(200 + i * 20);
+  g += rocket(S.built);
+  el('scene').innerHTML = g;
+}
+
+// Единственный innerHTML в разметке игры, и он собирается только из BALANCE и чисел.
   // Всё, что приходит извне — ники в таблице рекордов — рисуется через textContent.
   el('build').innerHTML = Object.entries(BALANCE.buildings).map(([k, b]) => {
     const cost = costOf(k);
@@ -421,6 +459,7 @@ el('loan').onclick = () => {
 };
 
 el('buy-part').onclick = () => {
+  drawScene();
   el('v-debt').textContent = S.debt;
   const offer = loanOffer();
   el('loan').disabled = busy || S.debt > 0 || !offer;
