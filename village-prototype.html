@@ -21,6 +21,10 @@ h1 span{color:var(--gold);text-shadow:2px 2px #6b4a15}
 .row{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #2b384966}
 .row:last-child{border:0}
 .row b{color:var(--gold);font-weight:700}
+[data-find]{cursor:pointer}
+.find{animation:bob 1.6s ease-in-out infinite}
+.find:hover circle:nth-child(2){fill:#ffd97a}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 .scene{width:100%;height:auto;display:block;margin-bottom:11px;border:1px solid var(--rule);background:linear-gradient(#111a28,#1b2a22 62%,#22301f)}
 .bar{height:5px;margin-top:6px;background:#222d3c;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--green);transition:width .3s}
@@ -208,6 +212,12 @@ const BALANCE = {
 
   // Занимаешь у тех, с кем гонишься: сосед даёт денег и этим тебя тормозит.
   // Сумма всегда равна следующей детали — заём покупает ровно ту спешку, ради которой его берут.
+  // Собирательство: пока коровы доятся, по деревне попадается мелочь. Без риска и без роста —
+  // на старте это половина дохода, к пятой минуте уже незаметно. Как ягоды в Stardew.
+  forageEveryMs: 6000,
+  forageMax: 3,
+  forageGold: 3,
+
   loanRate: 1.5,           // вернуть придётся во столько раз больше
   loanShare: 0.5,          // доля каждой продажи, уходящая соседу, пока долг не закрыт
 
@@ -231,7 +241,7 @@ S.own = Object.assign(
   {cow:1, barn:1},
   saved.own || {}
 );
-let rotation = 0, busy = false;
+let rotation = 0, busy = false, finds = [], nextFind = 0, sceneKey = '';
 
 const capacity = () => BALANCE.capPerBarn * S.own.barn;
 const ratePerMin = () => BALANCE.milkPerCowPerMin * S.own.cow;
@@ -286,6 +296,24 @@ document.querySelectorAll('.periods button').forEach(tab => tab.onclick = () => 
   document.querySelectorAll('.periods button').forEach(item => item.classList.toggle('active', item === tab));
   void loadLeaders(tab.dataset.period);
 });
+
+// Находка живёт до сбора: пропустить её нельзя, но и накопить больше forageMax тоже.
+function spawnFinds(now){
+  if (finds.length >= BALANCE.forageMax || now < nextFind) return;
+  nextFind = now + BALANCE.forageEveryMs;
+  finds.push({id: Math.round(now), x: 24 + Math.random() * 240, y: 66 + Math.random() * 8});
+}
+
+el('scene').onclick = e => {
+  const g = e.target.closest?.('[data-find]');
+  if (!g) return;
+  const id = Number(g.dataset.find);
+  if (!finds.some(f => f.id === id)) return;
+  finds = finds.filter(f => f.id !== id);
+  S.gold += BALANCE.forageGold;
+  el('market-msg').textContent = `Нашёл ${BALANCE.forageGold} монеты в траве.`;
+  save(); render();
+};
 
 function accrue(){
   const now = Date.now();
@@ -381,7 +409,16 @@ function drawScene(){
   for (let i = 0; i < cows; i++) g += cow(100 + i * 16);
   for (let i = 0; i < fairs; i++) g += stall(186 + i * 20);
   g += rocket(S.built);
-  el('scene').innerHTML = g;
+  // Позиция задана атрибутом transform, а покачивание — CSS-анимацией того же свойства.
+  // На одном элементе анимация перебила бы позицию и все находки уехали бы в угол, поэтому две группы.
+  for (const f of finds) g += `<g data-find="${f.id}" transform="translate(${f.x},${f.y})"><g class="find">`
+    + '<circle r="7" fill="#0c1017" opacity=".35"/>'
+    + '<circle r="4.5" fill="#f2c14e" stroke="#5b4630" stroke-width="1.5"/>'
+    + '<path d="M-1.6 -1.6 h3.2 v3.2 h-3.2z" fill="#5b4630" opacity=".55"/></g></g>';
+
+  // Перерисовываем только когда что-то изменилось: иначе секундный тик срывает анимацию находок.
+  const key = `${S.own.cow}|${S.own.barn}|${S.own.fair}|${S.built}|${finds.map(f => f.id).join(',')}`;
+  if (key !== sceneKey) { sceneKey = key; el('scene').innerHTML = g }
 }
 
 // Единственный innerHTML в разметке игры, и он собирается только из BALANCE и чисел.
@@ -510,9 +547,9 @@ let seen = false;
 try { seen = !!localStorage.getItem(SEEN) } catch { seen = true }
 if (!seen) showIntro();
 
-accrue(); render(); save();
+accrue(); spawnFinds(Date.now()); render(); save();
 void loadLeaders();
-setInterval(() => { accrue(); render(); save() }, 1000);
+setInterval(() => { accrue(); spawnFinds(Date.now()); render(); save() }, 1000);
 
 </script>
 </body>
