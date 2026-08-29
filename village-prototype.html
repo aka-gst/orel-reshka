@@ -75,8 +75,13 @@ button:disabled{opacity:.4;cursor:default}
 .intro-note{font-size:13px;color:var(--dim)!important}
 #intro-go{width:100%;border:2px solid var(--green);background:#1d4a30;color:#fff;font-size:14px}
 
-/* Двойной тап по кнопке не должен зумить страницу — игра состоит из тапов. */
+/* Двойной тап не должен зумить страницу — игра состоит из тапов.
+   Правило нужно на корне: браузер берёт пересечение ограничений по всем предкам,
+   а на одних кнопках оно не спасает — двойной тап по панели или тексту зумит так же. */
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}
 button,label,#coin,[data-find]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+/* Кнопки вне грид-контейнера сжимались по тексту и прижимались влево — мимо них легко промахнуться. */
+#loan,#buy-part{width:100%}
 
 .tabs{display:none;grid-template-columns:repeat(3,1fr);gap:6px}
 .tabs button{min-height:40px;font-size:11px;color:var(--dim)}
