@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Деревня — aka-gst</title>
 <link rel="stylesheet" href="/game-menu.css?v=1">
+<script defer src="/tour.js?v=1"></script>
 <script defer src="/pulse/script.js" data-website-id="de024048-c4c3-4639-bbdf-808c558f6d71"></script>
 <style>
 :root{color-scheme:dark;--green:#7fd98a;--gold:#f2c14e;--ink:#0c1017;--panel:#141b26;--rule:#2b3849;--dim:#8ea0b5;--felt:#16342a;--felt-edge:#2e5a45}
@@ -63,18 +64,6 @@ button:disabled{opacity:.4;cursor:default}
 .reset{display:flex;justify-content:flex-end}
 .reset button{min-height:30px;padding:0 14px;border-color:#33415a;color:#6c7d92;font-size:11px}
 
-.tour[hidden]{display:none}
-.tour-dim{position:fixed;inset:0;z-index:55;background:#0c1017cc}
-.spotlight{position:relative;z-index:56;outline:3px solid var(--green);outline-offset:3px;border-radius:2px}
-.tour-box{position:fixed;z-index:57;left:50%;transform:translateX(-50%);width:min(440px,92vw);
-  padding:16px 18px;border:1px solid var(--green);background:#141b26;box-shadow:0 10px 40px #0009}
-.tour-box.at-top{top:16px}
-.tour-box.at-bottom{bottom:16px}
-.tour-box p{margin:0 0 12px;color:#dfe7f0;font-size:14px;line-height:1.5}
-.tour-nav{display:flex;align-items:center;gap:10px}
-.tour-nav #tour-count{flex:1;text-align:center;color:var(--dim);font-size:11px}
-#tour-skip{min-height:34px;padding:0 12px;font-size:11px;color:var(--dim);border-color:#35455a}
-#tour-next{min-height:34px;padding:0 16px;font-size:12px}
 
 @media(max-width:900px){.wrap{grid-template-columns:1fr;min-height:0}.center{align-self:start;order:-1}.coin-wrap{width:min(62vw,34vh);height:min(62vw,34vh)}}
 #help{display:inline-grid;min-height:0;padding:2px 9px;margin-left:4px;vertical-align:baseline;font:700 11px ui-monospace,monospace;border-color:#35455a;color:var(--dim);letter-spacing:.06em}
@@ -160,18 +149,6 @@ button,label,#coin,[data-find]{touch-action:manipulation;-webkit-tap-highlight-c
   <a class="game-home-menu" href="/">НА ГЛАВНУЮ</a>
 </header>
 <p class="note">Монета, коровы и корабль. Улететь в космос первым из соседей. <button id="help">как играть</button></p>
-
-<div id="tour" class="tour" hidden>
-  <div class="tour-dim"></div>
-  <div class="tour-box">
-    <p id="tour-text"></p>
-    <div class="tour-nav">
-      <button id="tour-skip">пропустить</button>
-      <span id="tour-count"></span>
-      <button id="tour-next" class="go">ДАЛЬШЕ</button>
-    </div>
-  </div>
-</div>
 
 <div id="intro" class="intro" hidden>
   <div class="intro-card">
@@ -645,8 +622,7 @@ document.body.dataset.view = 'двор';
 
 
 // ---- пошаговое обучение ----
-// Каждый шаг подсвечивает настоящий элемент интерфейса: клик по нему двигает дальше,
-// «ДАЛЬШЕ» тоже — чтобы никто не застрял, если купить пока не на что.
+// Живёт в общем /tour.js: тот же приём нужен и остальным играм, и двух копий быть не должно.
 const TOUR = [
   {sel:'#go',       text:'Это монета, и она здесь главная. Каждое угадывание удваивает цену молока. Промах сжигает всю партию.'},
   {sel:'#risk',     text:'Когда цена нравится — продавай. Дальше рискуешь тем, что уже накопил.'},
@@ -655,54 +631,20 @@ const TOUR = [
   {sel:'#buy-part', text:'Или в корабль. Шесть деталей — и ты улетел в космос первым из соседей.'},
   {sel:'#loan',     text:'Не хватает на деталь — соседи дадут в долг ровно на неё. Половина продаж будет уходить им, пока не рассчитаешься.'},
 ];
-let step = -1, spot = null;
 
-function clearSpot(){ if (spot) { spot.classList.remove('spotlight'); spot = null } }
-
-function showStep(i){
-  clearSpot();
-  if (i < 0 || i >= TOUR.length) return endTour();
-  step = i;
-  const {sel, text} = TOUR[i];
-  const target = document.querySelector(sel);
-  // На узком экране цель может лежать в скрытой вкладке — открываем её.
-  const panel = target?.closest('[data-tab]');
-  if (panel) {
-    const name = panel.dataset.tab;
-    document.body.dataset.view = name;
-    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x.dataset.go === name));
-  }
-  el('tour').hidden = false;
-  el('tour-text').textContent = text;
-  el('tour-count').textContent = `${i + 1} из ${TOUR.length}`;
-  el('tour-next').textContent = i === TOUR.length - 1 ? 'ИГРАТЬ' : 'ДАЛЬШЕ';
-  if (!target) return;
-  target.scrollIntoView({block:'center', behavior:'smooth'});
-  target.classList.add('spotlight');
-  spot = target;
-  const box = document.querySelector('.tour-box');
-  const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
-  box.classList.toggle('at-top', mid > innerHeight / 2);
-  box.classList.toggle('at-bottom', mid <= innerHeight / 2);
+// На узком экране цель может лежать в закрытой вкладке — открываем её перед шагом.
+function openTabFor(step){
+  const panel = document.querySelector(step.sel)?.closest('[data-tab]');
+  if (!panel) return;
+  const name = panel.dataset.tab;
+  document.body.dataset.view = name;
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x.dataset.go === name));
 }
 
-function endTour(){
-  clearSpot();
-  el('tour').hidden = true;
-  step = -1;
-  try { localStorage.setItem(SEEN, '1') } catch {}
-}
+const startTour = () => window.Tour?.start(TOUR, {key:'village', before:openTabFor});
 
-el('tour-next').onclick = () => showStep(step + 1);
-el('tour-skip').onclick = endTour;
-// Клик по самой подсвеченной вещи тоже двигает обучение: учимся делая.
-document.addEventListener('click', e => {
-  if (step < 0 || !spot) return;
-  if (spot.contains(e.target)) setTimeout(() => showStep(step + 1), 260);
-}, true);
-
-el('intro-go').onclick = () => { hideIntro(); showStep(0) };
-el('help').onclick = () => { hideIntro(); showStep(0) };
+el('intro-go').onclick = () => { hideIntro(); startTour() };
+el('help').onclick = () => { hideIntro(); startTour() };
 let seen = false;
 try { seen = !!localStorage.getItem(SEEN) } catch { seen = true }
 if (!seen) showIntro();
