@@ -63,8 +63,7 @@ button:disabled{opacity:.4;cursor:default}
 .reset{display:flex;justify-content:flex-end}
 .reset button{min-height:30px;padding:0 14px;border-color:#33415a;color:#6c7d92;font-size:11px}
 @media(max-width:900px){.wrap{grid-template-columns:1fr;min-height:0}.center{align-self:start;order:-1}.coin-wrap{width:min(62vw,34vh);height:min(62vw,34vh)}}
-.top-right{display:flex;align-items:center;gap:9px}
-#help{min-height:0;width:32px;height:32px;padding:0;font-size:15px;border-color:#35455a;color:var(--dim)}
+#help{display:inline-grid;min-height:0;padding:2px 9px;margin-left:4px;vertical-align:baseline;font:700 11px ui-monospace,monospace;border-color:#35455a;color:var(--dim);letter-spacing:.06em}
 .intro{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:#0c1017e8;backdrop-filter:blur(3px)}
 .intro[hidden]{display:none}
 .intro-card{max-width:560px;padding:clamp(20px,3vw,34px);border:1px solid var(--green);background:#141b26;max-height:90dvh;overflow-y:auto}
@@ -75,6 +74,53 @@ button:disabled{opacity:.4;cursor:default}
 .intro-card b{color:var(--gold);font-weight:700}
 .intro-note{font-size:13px;color:var(--dim)!important}
 #intro-go{width:100%;border:2px solid var(--green);background:#1d4a30;color:#fff;font-size:14px}
+
+/* Двойной тап по кнопке не должен зумить страницу — игра состоит из тапов. */
+button,label,#coin,[data-find]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+
+.tabs{display:none;grid-template-columns:repeat(3,1fr);gap:6px}
+.tabs button{min-height:40px;font-size:11px;color:var(--dim)}
+.tabs button.active{border-color:var(--green);color:var(--green);background:#18321f}
+
+@media(max-width:900px){
+  /* Ядро игры — монета и продажа — всегда на первом экране. Остальное разложено по вкладкам. */
+  .col{display:contents}
+  .tabs{display:grid;order:-1}
+  .center{order:-2}
+  [data-tab]{display:none}
+  body[data-view="двор"] [data-tab="двор"],
+  body[data-view="стройка"] [data-tab="стройка"],
+  body[data-view="соседи"] [data-tab="соседи"]{display:block}
+  .coin-wrap{width:min(46vw,24vh);height:min(46vw,24vh)}
+  .center{gap:10px}
+  .note{font-size:11px;margin-bottom:12px}
+}
+
+@media(max-width:900px) and (orientation:landscape){
+  /* В альбоме высоты нет совсем: монета слева, вкладки справа, страница не крутится. */
+  html,body{height:100%;overflow:hidden}
+  body{grid-template-rows:auto minmax(0,1fr);gap:8px;padding:10px 12px 12px}
+  h1{font-size:22px}
+  .note{display:none}
+  .wrap{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);
+        height:100%;min-height:0;gap:10px}
+  .center{order:0;grid-column:1;grid-row:1 / span 2;align-self:stretch;min-height:0;overflow-y:auto}
+  .tabs{order:0;grid-column:2;grid-row:1}
+  [data-tab]{grid-column:2;grid-row:2;min-height:0;overflow-y:auto}
+  .coin-wrap{width:min(22vw,26vh);height:min(22vw,26vh)}
+  .panel{padding:11px}
+  .scene{margin-bottom:8px}
+  /* Высоты нет: бросок и продажа встают в один ряд, иначе продажа уезжает за край. */
+  .center{gap:7px}
+  .center>small{display:none}
+  .controls{grid-template-columns:1fr 1fr;gap:6px}
+  .choice,.msg{grid-column:1 / -1}
+  .choice label,button{min-height:36px}
+  .pot{font-size:11px}
+  .pot b{margin-top:1px;font-size:26px}
+  .msg{min-height:0;font-size:11px}
+}
+
 @media(min-width:901px){
   /* Экран игры, а не документ: страница не крутится, длинная колонка крутится внутри себя. */
   html,body{height:100%;overflow:hidden}
@@ -92,9 +138,9 @@ button:disabled{opacity:.4;cursor:default}
 <body>
 <header class="top">
   <h1><span>ДЕРЕВНЯ</span></h1>
-  <span class="top-right"><button id="help" title="Как играть">?</button><a class="game-home-menu" href="/">НА ГЛАВНУЮ</a></span>
+  <a class="game-home-menu" href="/">НА ГЛАВНУЮ</a>
 </header>
-<p class="note">Монета, коровы и корабль. Улететь в космос первым из соседей.</p>
+<p class="note">Монета, коровы и корабль. Улететь в космос первым из соседей. <button id="help">как играть</button></p>
 
 <div id="intro" class="intro" hidden>
   <div class="intro-card">
@@ -112,8 +158,14 @@ button:disabled{opacity:.4;cursor:default}
 </div>
 
 <div class="wrap">
+  <nav class="tabs" aria-label="Разделы">
+  <button class="active" data-go="двор">ДВОР</button>
+  <button data-go="стройка">СТРОЙКА</button>
+  <button data-go="соседи">СОСЕДИ</button>
+</nav>
+
   <div class="col">
-  <aside class="panel">
+  <aside class="panel" data-tab="двор">
     <small>ХОЗЯЙСТВО</small>
     <svg id="scene" class="scene" viewBox="0 0 300 96" role="img" aria-label="Вид деревни"></svg>
     <div class="row"><span>Золото</span><b id="v-gold">0</b></div>
@@ -125,16 +177,8 @@ button:disabled{opacity:.4;cursor:default}
     <div class="row"><span>Лучшая серия</span><b id="v-best">0</b></div>
   </aside>
 
-  <aside class="panel">
-    <small>РЫНОК</small>
-    <div class="row"><span>Выручка за молоко</span><b id="v-sale">0</b></div>
-    <div class="build" style="margin-top:9px">
-      <button id="risk">ПРОДАТЬ</button>
-    </div>
-    <p id="market-msg" class="msg" style="min-height:auto;margin-top:8px">Копится молоко.</p>
-  </aside>
 
-  <aside class="panel">
+  <aside class="panel" data-tab="соседи">
     <small>СОСЕДИ</small>
     <div class="row"><span>Долг</span><b id="v-debt">0</b></div>
     <button id="loan" style="margin-top:11px">—</button>
@@ -152,12 +196,13 @@ button:disabled{opacity:.4;cursor:default}
         <input type="radio" id="tails" name="bet" value="tails"><label for="tails">РЕШКА</label>
       </div>
       <button id="go" class="go">БРОСИТЬ МОНЕТУ</button>
+      <button id="risk" class="bank">ПРОДАТЬ</button>
       <p id="msg" class="msg">Бросай монету: удача множит цену молока, промах сжигает партию.</p>
     </div>
   </section>
 
   <div class="col">
-  <aside class="panel">
+  <aside class="panel" data-tab="стройка">
     <small>КОРАБЛЬ</small>
     <div class="row"><span id="ship-stage">Деталей собрано</span><b id="ship-count">0 / 6</b></div>
     <div class="bar"><i id="ship-bar" style="width:0"></i></div>
@@ -165,12 +210,12 @@ button:disabled{opacity:.4;cursor:default}
     <p id="ship-msg" class="msg" style="min-height:auto;margin-top:8px">Первая деталь — чертёж.</p>
   </aside>
 
-  <aside class="panel">
+  <aside class="panel" data-tab="стройка">
     <small>ПОСТРОЙКИ</small>
     <div class="build" id="build"></div>
   </aside>
 
-  <aside class="panel">
+  <aside class="panel" data-tab="соседи">
     <small>ГЛОБАЛЬНЫЙ ТОП</small>
     <div class="periods" aria-label="Период рейтинга">
       <button class="active" data-period="today">СЕГОДНЯ</button>
@@ -181,7 +226,7 @@ button:disabled{opacity:.4;cursor:default}
     <ol id="leaders"><li>Рекордов пока нет</li></ol>
   </aside>
 
-  <div class="reset"><button id="reset">СБРОСИТЬ ПРОГРЕСС</button></div>
+  <div class="reset" data-tab="соседи"><button id="reset">СБРОСИТЬ ПРОГРЕСС</button></div>
   </div>
 </div>
 
@@ -311,7 +356,7 @@ el('scene').onclick = e => {
   if (!finds.some(f => f.id === id)) return;
   finds = finds.filter(f => f.id !== id);
   S.gold += BALANCE.forageGold;
-  el('market-msg').textContent = `Нашёл ${BALANCE.forageGold} монеты в траве.`;
+  el('msg').textContent = `Нашёл ${BALANCE.forageGold} монеты в траве.`;
   save(); render();
 };
 
@@ -330,7 +375,6 @@ function render(){
   el('v-cap').textContent   = capacity();
   el('v-price').textContent = price();
   el('v-best').textContent  = S.best;
-  el('v-sale').textContent  = saleValue();
 
   // Монета доступна всегда — это и есть игра, а не награда за накопление.
   el('go').disabled = busy;
@@ -481,7 +525,7 @@ function sell(){
   S.gold += sum - repaid;
   S.milk -= Math.floor(S.milk);
   S.streak = 0;   // разогрев тратится на сделку
-  el('market-msg').textContent = repaid
+  el('msg').textContent = repaid
     ? `Продал за ${sum}, соседу ушло ${repaid}.`
     : `Продал за ${sum}.`;
   save(); render();
@@ -499,7 +543,7 @@ el('build').onclick = e => {
   if (S.gold < cost) return;
   S.gold -= cost;
   S.own[k]++;
-  el('market-msg').textContent = `${BALANCE.buildings[k].name} построена.`;
+  el('msg').textContent = `${BALANCE.buildings[k].name} построена.`;
   save(); render();
 };
 
@@ -541,6 +585,12 @@ el('reset').onclick = () => {
 const SEEN = 'village-intro-seen';
 const showIntro = () => el('intro').hidden = false;
 const hideIntro = () => { el('intro').hidden = true; try { localStorage.setItem(SEEN, '1') } catch {} };
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
+  document.body.dataset.view = b.dataset.go;
+});
+document.body.dataset.view = 'двор';
+
 el('intro-go').onclick = hideIntro;
 el('help').onclick = showIntro;
 let seen = false;
