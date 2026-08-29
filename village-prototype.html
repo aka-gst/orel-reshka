@@ -62,6 +62,20 @@ button:disabled{opacity:.4;cursor:default}
 #leaders b{color:var(--green)}
 .reset{display:flex;justify-content:flex-end}
 .reset button{min-height:30px;padding:0 14px;border-color:#33415a;color:#6c7d92;font-size:11px}
+
+.tour[hidden]{display:none}
+.tour-dim{position:fixed;inset:0;z-index:55;background:#0c1017cc}
+.spotlight{position:relative;z-index:56;outline:3px solid var(--green);outline-offset:3px;border-radius:2px}
+.tour-box{position:fixed;z-index:57;left:50%;transform:translateX(-50%);width:min(440px,92vw);
+  padding:16px 18px;border:1px solid var(--green);background:#141b26;box-shadow:0 10px 40px #0009}
+.tour-box.at-top{top:16px}
+.tour-box.at-bottom{bottom:16px}
+.tour-box p{margin:0 0 12px;color:#dfe7f0;font-size:14px;line-height:1.5}
+.tour-nav{display:flex;align-items:center;gap:10px}
+.tour-nav #tour-count{flex:1;text-align:center;color:var(--dim);font-size:11px}
+#tour-skip{min-height:34px;padding:0 12px;font-size:11px;color:var(--dim);border-color:#35455a}
+#tour-next{min-height:34px;padding:0 16px;font-size:12px}
+
 @media(max-width:900px){.wrap{grid-template-columns:1fr;min-height:0}.center{align-self:start;order:-1}.coin-wrap{width:min(62vw,34vh);height:min(62vw,34vh)}}
 #help{display:inline-grid;min-height:0;padding:2px 9px;margin-left:4px;vertical-align:baseline;font:700 11px ui-monospace,monospace;border-color:#35455a;color:var(--dim);letter-spacing:.06em}
 .intro{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:#0c1017e8;backdrop-filter:blur(3px)}
@@ -147,6 +161,18 @@ button,label,#coin,[data-find]{touch-action:manipulation;-webkit-tap-highlight-c
 </header>
 <p class="note">Монета, коровы и корабль. Улететь в космос первым из соседей. <button id="help">как играть</button></p>
 
+<div id="tour" class="tour" hidden>
+  <div class="tour-dim"></div>
+  <div class="tour-box">
+    <p id="tour-text"></p>
+    <div class="tour-nav">
+      <button id="tour-skip">пропустить</button>
+      <span id="tour-count"></span>
+      <button id="tour-next" class="go">ДАЛЬШЕ</button>
+    </div>
+  </div>
+</div>
+
 <div id="intro" class="intro" hidden>
   <div class="intro-card">
     <h2>Ты — деревня</h2>
@@ -158,7 +184,7 @@ button,label,#coin,[data-find]{touch-action:manipulation;-webkit-tap-highlight-c
       <li><b>Золото идёт в постройки или в детали корабля.</b> Шесть деталей — и ты в космосе.</li>
     </ol>
     <p class="intro-note">Не хватает на деталь — соседи дадут в долг под половину будущих продаж. Улететь должником нельзя.</p>
-    <button id="intro-go">ПОНЯТНО, НАЧИНАЕМ</button>
+    <button id="intro-go">ПОКАЖИ, КАК ИГРАТЬ</button>
   </div>
 </div>
 
@@ -187,7 +213,7 @@ button,label,#coin,[data-find]{touch-action:manipulation;-webkit-tap-highlight-c
     <small>СОСЕДИ</small>
     <div class="row"><span>Долг</span><b id="v-debt">0</b></div>
     <button id="loan" style="margin-top:11px">—</button>
-    <p id="loan-msg" class="msg" style="min-height:auto;margin-top:8px">Соседи дадут в долг на деталь.</p>
+    <p id="loan-msg" class="msg" style="min-height:auto;margin-top:8px">Соседи дают в долг на деталь. Пока долг не закрыт, второй раз не займут.</p>
   </aside>
   </div>
 
@@ -398,8 +424,14 @@ function render(){
   drawScene();
   el('v-debt').textContent = S.debt;
   const offer = loanOffer();
-  el('loan').disabled = busy || S.debt > 0 || !offer;
-  el('loan').textContent = S.debt ? `ДОЛГ ${S.debt}` : offer ? `ЗАНЯТЬ ${offer} · ВЕРНУТЬ ${Math.round(offer * BALANCE.loanRate)}` : 'ЗАНИМАТЬ НЕ У КОГО';
+  // В долгу кнопка становится «вернуть»: иначе она просто гасла и выглядела сломанной.
+  if (S.debt) {
+    el('loan').disabled = busy || S.gold < S.debt;
+    el('loan').textContent = S.gold >= S.debt ? `ВЕРНУТЬ ДОЛГ ${S.debt}` : `ОСТАЛОСЬ ВЕРНУТЬ ${S.debt}`;
+  } else {
+    el('loan').disabled = busy || !offer;
+    el('loan').textContent = offer ? `ЗАНЯТЬ ${offer} · ВЕРНУТЬ ${Math.round(offer * BALANCE.loanRate)}` : 'ЗАНИМАТЬ НЕ У КОГО';
+  }
 
   const part = nextPart();
   el('ship-count').textContent = `${S.built} / ${BALANCE.ship.length}`;
@@ -553,8 +585,17 @@ el('build').onclick = e => {
 };
 
 el('loan').onclick = () => {
+  if (busy) return;
+  if (S.debt) {                                   // досрочный возврат
+    if (S.gold < S.debt) return;
+    S.gold -= S.debt;
+    el('loan-msg').textContent = `Вернул ${S.debt} разом. Соседи снова дают в долг.`;
+    S.debt = 0;
+    save(); render();
+    return;
+  }
   const offer = loanOffer();
-  if (busy || S.debt > 0 || !offer) return;
+  if (!offer) return;
   S.gold += offer;
   S.debt = Math.round(offer * BALANCE.loanRate);
   el('loan-msg').textContent = `Занял ${offer}. Вернуть ${S.debt} — половина каждой продажи пойдёт соседу.`;
@@ -565,8 +606,14 @@ el('buy-part').onclick = () => {
   drawScene();
   el('v-debt').textContent = S.debt;
   const offer = loanOffer();
-  el('loan').disabled = busy || S.debt > 0 || !offer;
-  el('loan').textContent = S.debt ? `ДОЛГ ${S.debt}` : offer ? `ЗАНЯТЬ ${offer} · ВЕРНУТЬ ${Math.round(offer * BALANCE.loanRate)}` : 'ЗАНИМАТЬ НЕ У КОГО';
+  // В долгу кнопка становится «вернуть»: иначе она просто гасла и выглядела сломанной.
+  if (S.debt) {
+    el('loan').disabled = busy || S.gold < S.debt;
+    el('loan').textContent = S.gold >= S.debt ? `ВЕРНУТЬ ДОЛГ ${S.debt}` : `ОСТАЛОСЬ ВЕРНУТЬ ${S.debt}`;
+  } else {
+    el('loan').disabled = busy || !offer;
+    el('loan').textContent = offer ? `ЗАНЯТЬ ${offer} · ВЕРНУТЬ ${Math.round(offer * BALANCE.loanRate)}` : 'ЗАНИМАТЬ НЕ У КОГО';
+  }
 
   const part = nextPart();
   if (busy || !part || S.gold < part.cost) return;
@@ -596,8 +643,66 @@ document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
 });
 document.body.dataset.view = 'двор';
 
-el('intro-go').onclick = hideIntro;
-el('help').onclick = showIntro;
+
+// ---- пошаговое обучение ----
+// Каждый шаг подсвечивает настоящий элемент интерфейса: клик по нему двигает дальше,
+// «ДАЛЬШЕ» тоже — чтобы никто не застрял, если купить пока не на что.
+const TOUR = [
+  {sel:'#go',       text:'Это монета, и она здесь главная. Каждое угадывание удваивает цену молока. Промах сжигает всю партию.'},
+  {sel:'#risk',     text:'Когда цена нравится — продавай. Дальше рискуешь тем, что уже накопил.'},
+  {sel:'#scene',    text:'Это твоя деревня. По ней попадается мелочь — подбирай пальцем, пока коровы доятся.'},
+  {sel:'#build',    text:'Золото вкладывай в хозяйство: коровы дают больше молока, амбар копит больше, ярмарка поднимает цену.'},
+  {sel:'#buy-part', text:'Или в корабль. Шесть деталей — и ты улетел в космос первым из соседей.'},
+  {sel:'#loan',     text:'Не хватает на деталь — соседи дадут в долг ровно на неё. Половина продаж будет уходить им, пока не рассчитаешься.'},
+];
+let step = -1, spot = null;
+
+function clearSpot(){ if (spot) { spot.classList.remove('spotlight'); spot = null } }
+
+function showStep(i){
+  clearSpot();
+  if (i < 0 || i >= TOUR.length) return endTour();
+  step = i;
+  const {sel, text} = TOUR[i];
+  const target = document.querySelector(sel);
+  // На узком экране цель может лежать в скрытой вкладке — открываем её.
+  const panel = target?.closest('[data-tab]');
+  if (panel) {
+    const name = panel.dataset.tab;
+    document.body.dataset.view = name;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x.dataset.go === name));
+  }
+  el('tour').hidden = false;
+  el('tour-text').textContent = text;
+  el('tour-count').textContent = `${i + 1} из ${TOUR.length}`;
+  el('tour-next').textContent = i === TOUR.length - 1 ? 'ИГРАТЬ' : 'ДАЛЬШЕ';
+  if (!target) return;
+  target.scrollIntoView({block:'center', behavior:'smooth'});
+  target.classList.add('spotlight');
+  spot = target;
+  const box = document.querySelector('.tour-box');
+  const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
+  box.classList.toggle('at-top', mid > innerHeight / 2);
+  box.classList.toggle('at-bottom', mid <= innerHeight / 2);
+}
+
+function endTour(){
+  clearSpot();
+  el('tour').hidden = true;
+  step = -1;
+  try { localStorage.setItem(SEEN, '1') } catch {}
+}
+
+el('tour-next').onclick = () => showStep(step + 1);
+el('tour-skip').onclick = endTour;
+// Клик по самой подсвеченной вещи тоже двигает обучение: учимся делая.
+document.addEventListener('click', e => {
+  if (step < 0 || !spot) return;
+  if (spot.contains(e.target)) setTimeout(() => showStep(step + 1), 260);
+}, true);
+
+el('intro-go').onclick = () => { hideIntro(); showStep(0) };
+el('help').onclick = () => { hideIntro(); showStep(0) };
 let seen = false;
 try { seen = !!localStorage.getItem(SEEN) } catch { seen = true }
 if (!seen) showIntro();
