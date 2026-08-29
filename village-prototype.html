@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Орёл или решка — aka-gst</title>
+<title>Монетка — aka-gst</title>
 <link rel="stylesheet" href="/game-menu.css?v=1">
 <script defer src="/pulse/script.js" data-website-id="de024048-c4c3-4639-bbdf-808c558f6d71"></script>
 <style>
@@ -56,10 +56,22 @@ button:disabled{opacity:.4;cursor:default}
 .reset{display:flex;justify-content:flex-end}
 .reset button{min-height:30px;padding:0 14px;border-color:#5a3a70;color:#8d7c9b;font-size:11px}
 @media(max-width:900px){.wrap{grid-template-columns:1fr;min-height:0}.center{align-self:start;order:-1}.coin-wrap{width:min(62vw,34vh);height:min(62vw,34vh)}}
+.top-right{display:flex;align-items:center;gap:9px}
+#help{min-height:0;width:32px;height:32px;padding:0;font-size:15px;border-color:#725089;color:var(--dim)}
+.intro{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:#090510e8;backdrop-filter:blur(3px)}
+.intro[hidden]{display:none}
+.intro-card{max-width:560px;padding:clamp(20px,3vw,34px);border:1px solid var(--green);background:#130c1d;max-height:90dvh;overflow-y:auto}
+.intro-card h2{margin:0 0 10px;font:900 clamp(24px,3vw,34px)/1 system-ui,sans-serif;color:var(--green);letter-spacing:-.03em}
+.intro-card p{margin:0 0 14px;color:#d9cce2}
+.intro-card ol{margin:0 0 16px;padding-left:20px;display:grid;gap:9px}
+.intro-card li{color:#d9cce2}
+.intro-card b{color:var(--gold);font-weight:700}
+.intro-note{font-size:13px;color:var(--dim)!important}
+#intro-go{width:100%;border:2px solid var(--green);background:#194d31;color:#fff;font-size:14px}
 @media(min-width:901px){
   /* Экран игры, а не документ: страница не крутится, длинная колонка крутится внутри себя. */
   html,body{height:100%;overflow:hidden}
-  body{display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;padding:16px 20px 20px}
+  body{display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:10px;padding:16px 20px 20px}
   .note{margin:0}
   /* width:100% обязателен: margin:0 auto отменяет растягивание грид-элемента,
      и без него колонки схлопываются до своих минимумов. */
@@ -72,10 +84,25 @@ button:disabled{opacity:.4;cursor:default}
 </head>
 <body>
 <header class="top">
-  <h1><span>ОРЁЛ</span> / РЕШКА</h1>
-  <a class="game-home-menu" href="/">НА ГЛАВНУЮ</a>
+  <h1><span>МОНЕТКА</span></h1>
+  <span class="top-right"><button id="help" title="Как играть">?</button><a class="game-home-menu" href="/">НА ГЛАВНУЮ</a></span>
 </header>
-<p class="note">Бросай монету и расти деревню. Молоко продаётся только через бросок.</p>
+<p class="note">Деревня, монета и корабль. Улететь в космос первым из соседей.</p>
+
+<div id="intro" class="intro" hidden>
+  <div class="intro-card">
+    <h2>Ты — деревня</h2>
+    <p>Соседи строят космический корабль. Ты хочешь улететь первым.</p>
+    <ol>
+      <li><b>Коровы дают молоко.</b> Оно копится само, пока хватает места в амбаре.</li>
+      <li><b>Монета назначает цену.</b> Каждое угадывание удваивает её. Промах сжигает всю партию.</li>
+      <li><b>Молоко продаётся только через бросок</b> — вдвое дороже или за полцены.</li>
+      <li><b>Золото идёт в постройки или в детали корабля.</b> Шесть деталей — и ты в космосе.</li>
+    </ol>
+    <p class="intro-note">Не хватает на деталь — соседи дадут в долг под половину будущих продаж. Улететь должником нельзя.</p>
+    <button id="intro-go">ПОНЯТНО, НАЧИНАЕМ</button>
+  </div>
+</div>
 
 <div class="wrap">
   <div class="col">
@@ -97,6 +124,13 @@ button:disabled{opacity:.4;cursor:default}
       <button id="risk">ПРОДАТЬ</button>
     </div>
     <p id="market-msg" class="msg" style="min-height:auto;margin-top:8px">Копится молоко.</p>
+  </aside>
+
+  <aside class="panel">
+    <small>СОСЕДИ</small>
+    <div class="row"><span>Долг</span><b id="v-debt">0</b></div>
+    <button id="loan" style="margin-top:11px">—</button>
+    <p id="loan-msg" class="msg" style="min-height:auto;margin-top:8px">Соседи дадут в долг на деталь.</p>
   </aside>
   </div>
 
@@ -168,6 +202,11 @@ const BALANCE = {
     {name:'ЗАПУСК',    cost: 20000},
   ],
 
+  // Занимаешь у тех, с кем гонишься: сосед даёт денег и этим тебя тормозит.
+  // Сумма всегда равна следующей детали — заём покупает ровно ту спешку, ради которой его берут.
+  loanRate: 1.5,           // вернуть придётся во столько раз больше
+  loanShare: 0.5,          // доля каждой продажи, уходящая соседу, пока долг не закрыт
+
   marketMult: 2,           // рыночный бросок: удача умножает выручку на это, промах — делит
   spinMs: 650,             // длительность броска (в классической игре 1550)
   buildings: {
@@ -182,7 +221,7 @@ const BALANCE = {
 const KEY = 'village-proto-v2';
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) } catch { return null } };
 const saved = load() || {};
-const S = Object.assign({gold:0, milk:0, best:0, streak:0, built:0, flips:0, t:Date.now()}, saved);
+const S = Object.assign({gold:0, milk:0, best:0, streak:0, built:0, flips:0, debt:0, t:Date.now()}, saved);
 // own мержим отдельно: иначе добавленная в BALANCE постройка отсутствует в сохранёнке и даёт NaN.
 S.own = Object.assign(
   Object.fromEntries(Object.keys(BALANCE.buildings).map(k => [k, 0])),
@@ -200,6 +239,14 @@ const warmup = n => BALANCE.growth ** Math.min(n, BALANCE.warmupCap);
 const shipTotal = () => BALANCE.ship.reduce((sum, part) => sum + part.cost, 0);
 const shipPaid = () => BALANCE.ship.slice(0, S.built).reduce((sum, part) => sum + part.cost, 0);
 const nextPart = () => BALANCE.ship[S.built] ?? null;
+// 1 бросок, 2 броска, 5 бросков — иначе в тексте победы вылезает «за 1 бросков».
+const plural = (n, one, few, many) => {
+  const a = Math.abs(n) % 100, b = a % 10;
+  return `${n} ${a > 10 && a < 20 ? many : b === 1 ? one : b > 1 && b < 5 ? few : many}`;
+};
+const loanOffer = () => { const part = nextPart(); return part ? part.cost : 0 };
+// Улететь, оставшись должным соседям, нельзя — последняя деталь ждёт закрытого долга.
+const lastPart = () => S.built === BALANCE.ship.length - 1;
 const saleValue = () => Math.floor(Math.floor(S.milk) * price() * warmup(S.streak));
 
 if (!Object.keys(saved).length) S.milk = Math.min(BALANCE.startMilk, capacity());
@@ -268,12 +315,18 @@ function render(){
   el('risk').disabled = busy || Math.floor(S.milk) < 1;
   el('risk').textContent = `ПРОДАТЬ: ${Math.floor(saleValue() * BALANCE.marketMult)} ИЛИ ${Math.floor(saleValue() / BALANCE.marketMult)}`;
 
+  el('v-debt').textContent = S.debt;
+  const offer = loanOffer();
+  el('loan').disabled = busy || S.debt > 0 || !offer;
+  el('loan').textContent = S.debt ? `ДОЛГ ${S.debt}` : offer ? `ЗАНЯТЬ ${offer} · ВЕРНУТЬ ${Math.round(offer * BALANCE.loanRate)}` : 'ЗАНИМАТЬ НЕ У КОГО';
+
   const part = nextPart();
   el('ship-count').textContent = `${S.built} / ${BALANCE.ship.length}`;
   el('ship-bar').style.width = `${shipPaid() / shipTotal() * 100}%`;
-  el('buy-part').disabled = busy || !part || S.gold < part.cost;
+  el('buy-part').disabled = busy || !part || S.gold < part.cost || (lastPart() && S.debt > 0);
   el('buy-part').textContent = part ? `${part.name} · ${part.cost}` : 'КОРАБЛЬ ГОТОВ';
   el('ship-stage').textContent = part ? 'Деталей собрано' : 'Собран целиком';
+  if (lastPart() && S.debt > 0) el('ship-msg').textContent = 'С долгом не улетают — сначала рассчитайся с соседями.';
 
   // Единственный innerHTML в файле, и он собирается только из BALANCE и чисел.
   // Всё, что приходит извне — ники в таблице рекордов — рисуется через textContent.
@@ -326,10 +379,16 @@ el('coin').onclick = () => el('go').click();
 
 function sell(mult, note){
   const sum = Math.floor(saleValue() * mult);
-  S.gold += sum;
+  let repaid = 0;
+  if (S.debt > 0) {
+    repaid = Math.min(S.debt, Math.floor(sum * BALANCE.loanShare));
+    S.debt -= repaid;
+    if (!S.debt) el('loan-msg').textContent = 'Долг закрыт. Соседи снова улыбаются.';
+  }
+  S.gold += sum - repaid;
   S.milk -= Math.floor(S.milk);
   S.streak = 0;   // разогрев тратится на сделку
-  el('market-msg').textContent = `${note} Выручка ${sum}.`;
+  el('market-msg').textContent = repaid ? `${note} Выручка ${sum}, соседу ${repaid}.` : `${note} Выручка ${sum}.`;
   save(); render();
 }
 
@@ -352,15 +411,30 @@ el('build').onclick = e => {
   save(); render();
 };
 
+el('loan').onclick = () => {
+  const offer = loanOffer();
+  if (busy || S.debt > 0 || !offer) return;
+  S.gold += offer;
+  S.debt = Math.round(offer * BALANCE.loanRate);
+  el('loan-msg').textContent = `Занял ${offer}. Вернуть ${S.debt} — половина каждой продажи пойдёт соседу.`;
+  save(); render();
+};
+
 el('buy-part').onclick = () => {
+  el('v-debt').textContent = S.debt;
+  const offer = loanOffer();
+  el('loan').disabled = busy || S.debt > 0 || !offer;
+  el('loan').textContent = S.debt ? `ДОЛГ ${S.debt}` : offer ? `ЗАНЯТЬ ${offer} · ВЕРНУТЬ ${Math.round(offer * BALANCE.loanRate)}` : 'ЗАНИМАТЬ НЕ У КОГО';
+
   const part = nextPart();
   if (busy || !part || S.gold < part.cost) return;
+  if (lastPart() && S.debt > 0) { el('ship-msg').textContent = 'С долгом не улетают. Сначала рассчитайся с соседями.'; return }
   S.gold -= part.cost;
   S.built++;
   const left = nextPart();
   el('ship-msg').textContent = left
     ? `${part.name} — готово. Дальше ${left.name.toLowerCase()} за ${left.cost}.`
-    : `${part.name} — готово. Корабль собран за ${S.flips} бросков. Соседи опоздали.`;
+    : `${part.name} — готово. Корабль собран за ${plural(S.flips, 'бросок', 'броска', 'бросков')}. Соседи опоздали.`;
   save(); render();
 };
 
@@ -369,6 +443,16 @@ el('reset').onclick = () => {
   try { localStorage.removeItem(KEY) } catch {}
   location.reload();
 };
+
+// Обучение показывается один раз; кнопка «?» открывает его снова.
+const SEEN = 'village-intro-seen';
+const showIntro = () => el('intro').hidden = false;
+const hideIntro = () => { el('intro').hidden = true; try { localStorage.setItem(SEEN, '1') } catch {} };
+el('intro-go').onclick = hideIntro;
+el('help').onclick = showIntro;
+let seen = false;
+try { seen = !!localStorage.getItem(SEEN) } catch { seen = true }
+if (!seen) showIntro();
 
 accrue(); render(); save();
 void loadLeaders();
