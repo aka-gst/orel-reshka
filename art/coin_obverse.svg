@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="coin" cx="35%" cy="28%" r="72%">
+      <stop offset="0" stop-color="#f2c14e"/>
+      <stop offset="0.55" stop-color="#f2c14e"/>
+      <stop offset="1" stop-color="#a9822f"/>
+    </radialGradient>
+  </defs>
+  <circle cx="100" cy="100" r="92" fill="url(#coin)" stroke="#5b4630" stroke-width="8"/>
+  <circle cx="100" cy="100" r="77" fill="none" stroke="#5b4630" stroke-width="4" opacity="0.8"/>
+  <path d="M40 126 L68 101 L91 115 L119 87 L160 126 L160 139 L40 139 Z" fill="#3a2f22"/>
+  <path d="M50 111 L68 95 L86 111 V134 H50 Z" fill="#22301f" stroke="#5b4630" stroke-width="3"/>
+  <path d="M57 119 H67 V130 H57 Z M71 115 H79 V125 H71 Z" fill="#f2c14e"/>
+  <path d="M88 105 L109 86 L132 105 V134 H88 Z" fill="#22301f" stroke="#5b4630" stroke-width="3"/>
+  <path d="M98 116 H108 V129 H98 Z M113 110 H123 V123 H113 Z" fill="#f2c14e"/>
+  <path d="M126 112 L142 98 L158 112 V134 H126 Z" fill="#22301f" stroke="#5b4630" stroke-width="3"/>
+  <path d="M136 118 H147 V129 H136 Z" fill="#f2c14e"/>
+  <path d="M36 145 C58 136 76 151 98 143 C120 135 143 146 164 139" fill="none" stroke="#5b4630" stroke-width="5" stroke-linecap="round"/>
+  <path d="M47 72 C58 62 69 57 80 55 M126 50 C140 54 151 62 160 74" fill="none" stroke="#5b4630" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+</svg>

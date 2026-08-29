@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="coin" cx="34%" cy="26%" r="74%">
+      <stop offset="0" stop-color="#e8ecf1"/>
+      <stop offset="0.48" stop-color="#b9c5d3"/>
+      <stop offset="1" stop-color="#7a8797"/>
+    </radialGradient>
+  </defs>
+  <circle cx="100" cy="100" r="92" fill="url(#coin)" stroke="#39404a" stroke-width="8"/>
+  <circle cx="100" cy="100" r="77" fill="none" stroke="#39404a" stroke-width="4" opacity="0.8"/>
+  <path d="M101 42 C122 57 133 81 132 108 L121 126 H80 L69 108 C68 81 79 57 101 42 Z" fill="#8d99a8" stroke="#39404a" stroke-width="4"/>
+  <ellipse cx="101" cy="78" rx="15" ry="14" fill="#b9c5d3" stroke="#39404a" stroke-width="4"/>
+  <path d="M80 113 L62 129 L79 134 M121 113 L140 129 L122 134" fill="#7a8797" stroke="#39404a" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M87 126 L79 151 L94 141 L101 158 L108 141 L123 151 L115 126 Z" fill="#e8ecf1" stroke="#39404a" stroke-width="3"/>
+  <path d="M53 62 l4 8 8 4-8 4-4 8-4-8-8-4 8-4z M146 52 l3 6 6 3-6 3-3 6-3-6-6-3 6-3z M152 103 l3 6 6 3-6 3-3 6-3-6-6-3 6-3z" fill="#e8ecf1"/>
+</svg>

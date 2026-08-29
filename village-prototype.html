@@ -28,8 +28,10 @@ h1 span{color:var(--gold);text-shadow:2px 2px #6b4a15}
 .coin-wrap{width:min(34vw,46vh,340px);height:min(34vw,46vh,340px);perspective:1200px;cursor:pointer}
 .coin-wrap:active{transform:scale(.97)}
 .coin{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform var(--spin,650ms) cubic-bezier(.2,.7,.15,1)}
-.side{position:absolute;inset:0;display:grid;place-items:center;border:6px double #ffe88d;border-radius:50%;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:radial-gradient(circle at 32% 24%,#fff8 0 5%,transparent 6%),radial-gradient(circle,#f8d66c,#9d641c 70%);color:#251203;font:900 clamp(30px,4.6vw,60px)/1 system-ui,sans-serif}
-.tails{transform:rotateY(180deg);background:radial-gradient(circle at 32% 24%,#fff 0 5%,transparent 6%),radial-gradient(circle,#d8dce4,#687080 70%)}
+.side{position:absolute;inset:0;display:grid;place-items:end center;padding-bottom:9%;border-radius:50%;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.tails{transform:rotateY(180deg)}
+.side svg{position:absolute;inset:0;width:100%;height:100%}
+.side span{position:relative;z-index:1;padding:3px 10px;border-radius:99px;background:#0c1017c4;color:#e8ecf1;font:800 clamp(11px,1.5vw,16px)/1 ui-monospace,monospace;letter-spacing:.12em}
 .controls{width:100%;display:grid;gap:8px}
 .choice{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .choice input{position:absolute;opacity:0;pointer-events:none}
@@ -138,7 +140,7 @@ button:disabled{opacity:.4;cursor:default}
 
   <section class="panel center">
     <small style="justify-self:start">МОНЕТА</small>
-    <div class="coin-wrap"><div id="coin" class="coin"><div class="side">ОРЁЛ</div><div class="side tails">РЕШКА</div></div></div>
+    <div class="coin-wrap"><div id="coin" class="coin"><div class="side"><svg aria-hidden="true" viewBox="0 0 200 200"> <defs> <radialGradient id="coin-obv" cx="35%" cy="28%" r="72%"> <stop offset="0" stop-color="#f2c14e"/> <stop offset="0.55" stop-color="#f2c14e"/> <stop offset="1" stop-color="#a9822f"/> </radialGradient> </defs> <circle cx="100" cy="100" r="92" fill="url(#coin-obv)" stroke="#5b4630" stroke-width="8"/> <circle cx="100" cy="100" r="77" fill="none" stroke="#5b4630" stroke-width="4" opacity="0.8"/> <path d="M40 126 L68 101 L91 115 L119 87 L160 126 L160 139 L40 139 Z" fill="#3a2f22"/> <path d="M50 111 L68 95 L86 111 V134 H50 Z" fill="#22301f" stroke="#5b4630" stroke-width="3"/> <path d="M57 119 H67 V130 H57 Z M71 115 H79 V125 H71 Z" fill="#f2c14e"/> <path d="M88 105 L109 86 L132 105 V134 H88 Z" fill="#22301f" stroke="#5b4630" stroke-width="3"/> <path d="M98 116 H108 V129 H98 Z M113 110 H123 V123 H113 Z" fill="#f2c14e"/> <path d="M126 112 L142 98 L158 112 V134 H126 Z" fill="#22301f" stroke="#5b4630" stroke-width="3"/> <path d="M136 118 H147 V129 H136 Z" fill="#f2c14e"/> <path d="M36 145 C58 136 76 151 98 143 C120 135 143 146 164 139" fill="none" stroke="#5b4630" stroke-width="5" stroke-linecap="round"/> <path d="M47 72 C58 62 69 57 80 55 M126 50 C140 54 151 62 160 74" fill="none" stroke="#5b4630" stroke-width="4" stroke-linecap="round" opacity="0.7"/> </svg><span>ОРЁЛ</span></div><div class="side tails"><svg aria-hidden="true" viewBox="0 0 200 200"> <defs> <radialGradient id="coin-rev" cx="34%" cy="26%" r="74%"> <stop offset="0" stop-color="#e8ecf1"/> <stop offset="0.48" stop-color="#b9c5d3"/> <stop offset="1" stop-color="#7a8797"/> </radialGradient> </defs> <circle cx="100" cy="100" r="92" fill="url(#coin-rev)" stroke="#39404a" stroke-width="8"/> <circle cx="100" cy="100" r="77" fill="none" stroke="#39404a" stroke-width="4" opacity="0.8"/> <path d="M101 42 C122 57 133 81 132 108 L121 126 H80 L69 108 C68 81 79 57 101 42 Z" fill="#8d99a8" stroke="#39404a" stroke-width="4"/> <ellipse cx="101" cy="78" rx="15" ry="14" fill="#b9c5d3" stroke="#39404a" stroke-width="4"/> <path d="M80 113 L62 129 L79 134 M121 113 L140 129 L122 134" fill="#7a8797" stroke="#39404a" stroke-width="4" stroke-linejoin="round"/> <path d="M87 126 L79 151 L94 141 L101 158 L108 141 L123 151 L115 126 Z" fill="#e8ecf1" stroke="#39404a" stroke-width="3"/> <path d="M53 62 l4 8 8 4-8 4-4 8-4-8-8-4 8-4z M146 52 l3 6 6 3-6 3-3 6-3-6-6-3 6-3z M152 103 l3 6 6 3-6 3-3 6-3-6-6-3 6-3z" fill="#e8ecf1"/> </svg><span>РЕШКА</span></div></div></div>
     <div class="pot" id="pot-label">Серия <b id="pot">0</b></div>
     <div class="controls">
       <div class="choice">
@@ -342,25 +344,42 @@ function drawScene(){
   const stall = x => `<rect x="${x}" y="${G - 9}" width="16" height="9" fill="#262f3d" stroke="#5b4630"/>`
     + `<path d="M${x - 2} ${G - 9} h20 l-3 -5 h-14 z" fill="#a2452f"/>`;
 
-  // Ракета растёт деталь за деталью: чертёж, корпус, дюза, бак, иллюминатор, оперение с огнём.
-  const B = 262;
+  // Ракета собрана слоями из присланных ассетов: каждая стадия включает все предыдущие.
+  // В исходных файлах панели пропадали с 4-й, а бак — с 5-й, то есть ракета теряла детали.
+  const B = 228, up = -10;                        // ассеты нарисованы с землёй на y=88, в сцене она на 78
   const rocket = n => {
     if (!n) return '';
-    if (n === 1) return `<rect x="${B-9}" y="${G-11}" width="18" height="11" fill="#22303f" stroke="#5b4630"/><path d="M${B-6} ${G-8} h12 M${B-6} ${G-5} h12" stroke="#8ea0b5" stroke-width="1"/>`;
-    let g = `<path d="M${B-7} ${G} v-16 q7 -11 14 0 v16 z" fill="#b9c5d3"/>`;
-    if (n >= 3) g += `<path d="M${B-5} ${G} h10 l-2 5 h-6 z" fill="#7a8797"/>`;
-    if (n >= 4) g += `<rect x="${B-7}" y="${G-9}" width="14" height="3.5" fill="#8d99a8"/>`;
-    if (n >= 5) g += `<circle cx="${B}" cy="${G-15}" r="3.2" fill="#0c1017" stroke="#e8ecf1"/>`;
-    if (n >= 6) g += `<path d="M${B-7} ${G-4} l-6 8 h6 z" fill="#9aa6b5"/><path d="M${B+7} ${G-4} l6 8 h-6 z" fill="#9aa6b5"/>`
-      + `<path d="M${B-4} ${G+5} q4 12 8 0 q-4 5 -8 0z" fill="#f2c14e"/>`;
-    return g;
+    const L = [];
+    if (n === 1) {
+      L.push('<path d="M12 88 V73 M52 88 V73" stroke="#5b4630" stroke-width="3"/>');
+      L.push('<path d="M9 73 H55 V49 H9 Z" fill="#3a2f22" stroke="#5b4630" stroke-width="3"/>');
+      L.push('<path d="M14 53 H50 V69 H14 Z" fill="#b9c5d3" stroke="#5b4630" stroke-width="2"/>');
+      L.push('<path d="M32 57 C39 61 40 65 40 69 M32 57 C25 61 24 65 24 69 M32 57 V69" fill="none" stroke="#7a8797" stroke-width="2"/>');
+      L.push('<path d="M17 77 L20 88 M47 77 L44 88" stroke="#5b4630" stroke-width="3"/>');
+      L.push('<path d="M17 46 C17 41 21 39 26 39 H39 C44 39 47 41 47 46 C47 49 44 51 40 51 H24 C20 51 17 49 17 46 Z" fill="#8d99a8" stroke="#5b4630" stroke-width="2"/>');
+    } else {
+      const done = n >= 6;
+      if (n >= 3) L.push('<path d="M26 82 H38 L41 88 H23 Z" fill="#7a8797" stroke="#5b4630" stroke-width="3"/>');
+      if (n >= 4) L.push('<rect x="45" y="63" width="12" height="20" rx="2" fill="#a2452f" stroke="#5b4630" stroke-width="2"/>'
+        + '<path d="M47 69 H55 M47 77 H55" stroke="#f2c14e" stroke-width="2"/>'
+        + '<path d="M45 66 C42 66 41 70 41 73" fill="none" stroke="#5b4630" stroke-width="2"/>');
+      if (done) L.push('<path d="M20 63 L12 79 L24 76 M44 63 L52 79 L40 76" fill="#7a8797" stroke="#5b4630" stroke-width="3" stroke-linejoin="round"/>');
+      L.push(`<path d="M32 18 C42 28 45 44 44 70 L39 82 H25 L20 70 C19 44 22 28 32 18 Z" fill="${done ? '#b9c5d3' : '#8d99a8'}" stroke="#5b4630" stroke-width="3"/>`);
+      L.push(`<path d="M25 44 H39 M24 58 H40" stroke="${done ? '#7a8797' : '#b9c5d3'}" stroke-width="2"/>`);
+      L.push('<path d="M28 25 L32 20 L36 25" fill="none" stroke="#e8ecf1" stroke-width="2"/>');
+      if (n >= 5) L.push('<circle cx="32" cy="45" r="8" fill="#141b26" stroke="#b9c5d3" stroke-width="3"/>'
+        + '<circle cx="32" cy="43" r="3" fill="#e8ecf1"/>'
+        + '<path d="M28 49 C30 52 34 52 36 49" fill="none" stroke="#e8ecf1" stroke-width="2" stroke-linecap="round"/>');
+      if (done) L.push('<path d="M27 88 L24 95 L32 91 L40 95 L37 88 Z" fill="#f2c14e" stroke="#a2452f" stroke-width="2"/>');
+    }
+    return `<g transform="translate(${B},${up})">${L.join('')}</g>`;
   };
 
   const huts = Math.min(S.own.barn, 3), cows = Math.min(S.own.cow, 6), fairs = Math.min(S.own.fair, 2);
   let g = `<path d="M0 ${G} h300 v${96-G} h-300z" fill="#22301f"/>`;
   for (let i = 0; i < huts; i++) g += hut(10 + i * 24, 14 + i * 3);
   for (let i = 0; i < cows; i++) g += cow(100 + i * 16);
-  for (let i = 0; i < fairs; i++) g += stall(200 + i * 20);
+  for (let i = 0; i < fairs; i++) g += stall(186 + i * 20);
   g += rocket(S.built);
   el('scene').innerHTML = g;
 }
