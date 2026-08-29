@@ -13,7 +13,7 @@ body{margin:0;min-height:100vh;padding:16px;background:radial-gradient(circle at
 h1{margin:0 0 5px;font:900 clamp(30px,3.4vw,44px)/1 system-ui,sans-serif;letter-spacing:-.05em}
 h1 span{color:var(--green);text-shadow:2px 2px #633180}
 .note{margin:0 0 18px;color:var(--dim);font-size:12px;letter-spacing:.06em}
-.wrap{display:grid;align-items:start;grid-template-columns:minmax(210px,1fr) minmax(300px,440px) minmax(230px,1fr);gap:20px;max-width:1320px;margin:0 auto;min-height:calc(100dvh - 150px)}
+.wrap{display:grid;align-items:start;grid-template-columns:minmax(210px,1fr) minmax(300px,440px) minmax(230px,1fr);gap:20px;max-width:1320px;margin:0 auto;}
 .col{display:grid;gap:20px;align-content:start}
 .center{align-self:center}
 .panel{padding:17px;border:1px solid #a867e066;background:#110b19cc}
@@ -53,9 +53,21 @@ button:disabled{opacity:.4;cursor:default}
 #leaders{margin:0;padding:0;list-style:none;display:grid;gap:8px}
 #leaders li{display:flex;justify-content:space-between;gap:8px;font-size:12px}
 #leaders b{color:var(--green)}
-.reset{margin:16px auto 0;max-width:1100px;display:flex;justify-content:flex-end}
+.reset{display:flex;justify-content:flex-end}
 .reset button{min-height:30px;padding:0 14px;border-color:#5a3a70;color:#8d7c9b;font-size:11px}
 @media(max-width:900px){.wrap{grid-template-columns:1fr;min-height:0}.center{align-self:start;order:-1}.coin-wrap{width:min(62vw,34vh);height:min(62vw,34vh)}}
+@media(min-width:901px){
+  /* Экран игры, а не документ: страница не крутится, длинная колонка крутится внутри себя. */
+  html,body{height:100%;overflow:hidden}
+  body{display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;padding:16px 20px 20px}
+  .note{margin:0}
+  /* width:100% обязателен: margin:0 auto отменяет растягивание грид-элемента,
+     и без него колонки схлопываются до своих минимумов. */
+  .wrap{min-height:0;height:100%;width:100%;align-items:stretch;gap:clamp(14px,1.6vw,26px)}
+  .col{min-height:0;overflow-y:auto;gap:clamp(12px,1.4vh,20px);padding-right:2px}
+  .center{min-height:0;align-self:center;overflow-y:auto}
+  .coin-wrap{width:min(26vw,34vh,340px);height:min(26vw,34vh,340px)}
+}
 </style>
 </head>
 <body>
@@ -126,10 +138,10 @@ button:disabled{opacity:.4;cursor:default}
     </div>
     <ol id="leaders"><li>Рекордов пока нет</li></ol>
   </aside>
+
+  <div class="reset"><button id="reset">СБРОСИТЬ ПРОГРЕСС</button></div>
   </div>
 </div>
-
-<div class="reset"><button id="reset">СБРОСИТЬ ПРОГРЕСС</button></div>
 
 <script>
 /* ---------- ВСЕ РЫЧАГИ БАЛАНСА ЗДЕСЬ ---------- */
