@@ -39,9 +39,10 @@ h1 span{color:var(--gold);text-shadow:2px 2px #6b4a15}
 .side span{position:relative;z-index:1;padding:3px 10px;border-radius:99px;background:#0c1017c4;color:#e8ecf1;font:800 clamp(11px,1.5vw,16px)/1 ui-monospace,monospace;letter-spacing:.12em}
 .controls{width:100%;display:grid;gap:8px}
 .choice{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.choice input{position:absolute;opacity:0;pointer-events:none}
-.choice label,button{min-height:46px;display:grid;place-items:center;padding:7px;border:1px solid #35455a;background:#1a2432;color:#dfe7f0;font:800 12px ui-monospace,monospace;letter-spacing:.05em;cursor:pointer;text-align:center}
-.choice input:checked+label{border-color:var(--gold);background:#3c2f10;color:#ffe9a8}
+.choice button,button{min-height:46px;display:grid;place-items:center;padding:7px;border:1px solid #35455a;background:#1a2432;color:#dfe7f0;font:800 12px ui-monospace,monospace;letter-spacing:.05em;cursor:pointer;text-align:center}
+.choice[hidden]{display:none}
+#bet-a{border-color:var(--green);color:#dff5e4}
+#bet-b{border-color:var(--gold);color:#ffe9a8}
 button:disabled{opacity:.4;cursor:default}
 .go{border:2px solid var(--green);background:#1d4a30;color:#fff;font-size:15px}
 .bank{border:2px solid var(--gold);background:#4d3b13;color:#fff6b7;font-size:15px}
@@ -123,7 +124,7 @@ button,label,#coin,[data-find]{touch-action:manipulation;-webkit-tap-highlight-c
   .center>small{display:none}
   .controls{grid-template-columns:1fr 1fr;gap:6px}
   .choice,.msg{grid-column:1 / -1}
-  .choice label,button{min-height:36px}
+  .choice button,button{min-height:36px}
   .pot{font-size:11px}
   .pot b{margin-top:1px;font-size:26px}
   .msg{min-height:0;font-size:11px}
@@ -182,9 +183,16 @@ button,label,#coin,[data-find]{touch-action:manipulation;-webkit-tap-highlight-c
     <div class="row"><span>Надой</span><b id="v-rate">0</b></div>
     <div class="row"><span>Хранение</span><b id="v-cap">0</b></div>
     <div class="row"><span>Цена молока</span><b id="v-price">0</b></div>
-    <div class="row"><span>Лучшая серия</span><b id="v-best">0</b></div>
+    <div class="row"><span>Оборона</span><b id="v-def">0</b></div>
+    <div class="row"><span>Набегов отбито</span><b id="v-raids">0</b></div>
   </aside>
 
+
+  <aside class="panel" data-tab="двор">
+    <small>ОБОРОНА</small>
+    <div class="row"><span>Следующий набег</span><b id="v-next">—</b></div>
+    <div class="build" id="guard" style="margin-top:11px"></div>
+  </aside>
 
   <aside class="panel" data-tab="соседи">
     <small>СОСЕДИ</small>
@@ -199,13 +207,10 @@ button,label,#coin,[data-find]{touch-action:manipulation;-webkit-tap-highlight-c
     <div class="coin-wrap"><div id="coin" class="coin"><div class="side"><svg aria-hidden="true" viewBox="0 0 200 200"> <defs> <radialGradient id="coin-obv" cx="35%" cy="28%" r="72%"> <stop offset="0" stop-color="#f2c14e"/> <stop offset="0.55" stop-color="#f2c14e"/> <stop offset="1" stop-color="#a9822f"/> </radialGradient> </defs> <circle cx="100" cy="100" r="92" fill="url(#coin-obv)" stroke="#5b4630" stroke-width="8"/> <circle cx="100" cy="100" r="77" fill="none" stroke="#5b4630" stroke-width="4" opacity="0.8"/> <path d="M40 126 L68 101 L91 115 L119 87 L160 126 L160 139 L40 139 Z" fill="#3a2f22"/> <path d="M50 111 L68 95 L86 111 V134 H50 Z" fill="#22301f" stroke="#5b4630" stroke-width="3"/> <path d="M57 119 H67 V130 H57 Z M71 115 H79 V125 H71 Z" fill="#f2c14e"/> <path d="M88 105 L109 86 L132 105 V134 H88 Z" fill="#22301f" stroke="#5b4630" stroke-width="3"/> <path d="M98 116 H108 V129 H98 Z M113 110 H123 V123 H113 Z" fill="#f2c14e"/> <path d="M126 112 L142 98 L158 112 V134 H126 Z" fill="#22301f" stroke="#5b4630" stroke-width="3"/> <path d="M136 118 H147 V129 H136 Z" fill="#f2c14e"/> <path d="M36 145 C58 136 76 151 98 143 C120 135 143 146 164 139" fill="none" stroke="#5b4630" stroke-width="5" stroke-linecap="round"/> <path d="M47 72 C58 62 69 57 80 55 M126 50 C140 54 151 62 160 74" fill="none" stroke="#5b4630" stroke-width="4" stroke-linecap="round" opacity="0.7"/> </svg><span>ОРЁЛ</span></div><div class="side tails"><svg aria-hidden="true" viewBox="0 0 200 200"> <defs> <radialGradient id="coin-rev" cx="34%" cy="26%" r="74%"> <stop offset="0" stop-color="#e8ecf1"/> <stop offset="0.48" stop-color="#b9c5d3"/> <stop offset="1" stop-color="#7a8797"/> </radialGradient> </defs> <circle cx="100" cy="100" r="92" fill="url(#coin-rev)" stroke="#39404a" stroke-width="8"/> <circle cx="100" cy="100" r="77" fill="none" stroke="#39404a" stroke-width="4" opacity="0.8"/> <path d="M101 42 C122 57 133 81 132 108 L121 126 H80 L69 108 C68 81 79 57 101 42 Z" fill="#8d99a8" stroke="#39404a" stroke-width="4"/> <ellipse cx="101" cy="78" rx="15" ry="14" fill="#b9c5d3" stroke="#39404a" stroke-width="4"/> <path d="M80 113 L62 129 L79 134 M121 113 L140 129 L122 134" fill="#7a8797" stroke="#39404a" stroke-width="4" stroke-linejoin="round"/> <path d="M87 126 L79 151 L94 141 L101 158 L108 141 L123 151 L115 126 Z" fill="#e8ecf1" stroke="#39404a" stroke-width="3"/> <path d="M53 62 l4 8 8 4-8 4-4 8-4-8-8-4 8-4z M146 52 l3 6 6 3-6 3-3 6-3-6-6-3 6-3z M152 103 l3 6 6 3-6 3-3 6-3-6-6-3 6-3z" fill="#e8ecf1"/> </svg><span>РЕШКА</span></div></div></div>
     <div class="pot" id="pot-label">Серия <b id="pot">0</b></div>
     <div class="controls">
-      <div class="choice">
-        <input type="radio" id="heads" name="bet" value="heads" checked><label for="heads">ОРЁЛ</label>
-        <input type="radio" id="tails" name="bet" value="tails"><label for="tails">РЕШКА</label>
-      </div>
+      <div class="choice" id="choice" hidden><button id="bet-a"></button><button id="bet-b"></button></div>
       <button id="go" class="go">БРОСИТЬ МОНЕТУ</button>
       <button id="risk" class="bank">ПРОДАТЬ</button>
-      <p id="msg" class="msg">Бросай монету: удача множит цену молока, промах сжигает партию.</p>
+      <p id="msg" class="msg">Коровы доятся, молоко продаётся. Монета ждёт варваров и купца.</p>
     </div>
   </section>
 
@@ -241,19 +246,17 @@ button,label,#coin,[data-find]{touch-action:manipulation;-webkit-tap-highlight-c
 <script>
 /* ---------- ВСЕ РЫЧАГИ БАЛАНСА ЗДЕСЬ ---------- */
 const BALANCE = {
-  milkPerCowPerMin: 20,    // надой одной коровы в минуту
-  capPerBarn: 20,          // вместимость одного амбара
-  priceBase: 1,            // золота за молоко без ярмарок
-  startMilk: 20,           // молоко на первом заходе
+  // Ферма кормит сама: молоко копится и продаётся по цене, без всякого броска.
+  // Монета из источника дохода стала револьвером — стреляет только в набеге и в пари с купцом.
+  milkPerCowPerMin: 20,
+  capPerBarn: 20,
+  priceBase: 1,
+  startMilk: 20,
 
-  // Свободный бросок золота НЕ даёт: серия — это множитель на следующую продажу молока.
-  // Так монета ничего не печатает из воздуха, но и не устаревает: множитель растёт вместе с партией.
-  // Удвоение оставляет каждый следующий бросок EV-нейтральным, решает не арифметика, а характер.
-  growth: 2,
-  warmupCap: 5,           // потолок разогрева: 2^5 = ×32
+  forageEveryMs: 6000,
+  forageMax: 3,
+  forageGold: 3,
 
-  // Детали покупаются в любой момент и в любом темпе: каждая монета, ушедшая в корабль,
-  // это монета, которая не осталась работать в деревне. В этом и весь выбор.
   ship: [
     {name:'ЧЕРТЁЖ',    cost:   400},
     {name:'КОРПУС',    cost:  1600},
@@ -263,20 +266,32 @@ const BALANCE = {
     {name:'ЗАПУСК',    cost: 20000},
   ],
 
-  // Занимаешь у тех, с кем гонишься: сосед даёт денег и этим тебя тормозит.
-  // Сумма всегда равна следующей детали — заём покупает ровно ту спешку, ради которой его берут.
-  // Собирательство: пока коровы доятся, по деревне попадается мелочь. Без риска и без роста —
-  // на старте это половина дохода, к пятой минуте уже незаметно. Как ягоды в Stardew.
-  forageEveryMs: 6000,
-  forageMax: 3,
-  forageGold: 3,
+  // Оборона держится вечно, но набеги растут — значит подсыпать придётся всегда.
+  guard: {
+    militia: {name:'ОПОЛЧЕНИЕ', cost: 45, growth:1.5,  power: 6, hint:'+6 к обороне'},
+    wall:    {name:'СТЕНА',     cost: 90, growth:1.65, power:14, hint:'+14 к обороне'},
+  },
+  raidFirstMs: 120000,      // первый набег даётся на раскачку
+  raidEveryMs: 105000,
+  raidBase: 10,
+  raidGrowth: 1.5,          // каждый следующий набег сильнее
+  raidTake: 0.35,           // доля золота и молока, которую забирают
+  raidBurn: 1,              // сколько построек обороны сжигают
 
-  loanRate: 1.5,           // вернуть придётся во столько раз больше
-  loanShare: 0.5,          // доля каждой продажи, уходящая соседу, пока долг не закрыт
+  // Купец приходит редко и предлагает честное пари: обе ставки равны по матожиданию,
+  // выбирает не арифметика, а характер.
+  merchantFirstMs: 75000,
+  merchantEveryMs: 150000,
+  merchantOdds: [
+    {side:'heads', p:0.7, k:1.45, label:'вернее'},
+    {side:'tails', p:0.3, k:3.30, label:'жаднее'},
+  ],
 
-  spinMs: 650,             // длительность броска (в классической игре 1550)
+  loanRate: 1.5,
+  loanShare: 0.5,
+
+  spinMs: 650,
   buildings: {
-    // hint — функция от самого баланса, иначе подписи разъезжаются с числами при первой же настройке.
     cow:  {name:'КОРОВА',  cost:15, growth:1.55, hint:B => `+${B.milkPerCowPerMin} молока в минуту`},
     barn: {name:'АМБАР',   cost:25, growth:1.75, hint:B => `+${B.capPerBarn} к хранению`},
     fair: {name:'ЯРМАРКА', cost:40, growth:2.00, hint:() => '+1 золото за молоко'},
@@ -287,21 +302,29 @@ const BALANCE = {
 const KEY = 'village-proto-v2';
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) } catch { return null } };
 const saved = load() || {};
-const S = Object.assign({gold:0, milk:0, best:0, streak:0, built:0, flips:0, debt:0, t:Date.now()}, saved);
+const S = Object.assign({gold:0, milk:0, built:0, flips:0, debt:0, raids:0, lost:0,
+                         t:Date.now(), tRaid:0, tMerchant:0}, saved);
 // own мержим отдельно: иначе добавленная в BALANCE постройка отсутствует в сохранёнке и даёт NaN.
 S.own = Object.assign(
   Object.fromEntries(Object.keys(BALANCE.buildings).map(k => [k, 0])),
   {cow:1, barn:1},
   saved.own || {}
 );
+S.guard = Object.assign(
+  Object.fromEntries(Object.keys(BALANCE.guard).map(k => [k, 0])),
+  saved.guard || {}
+);
+// event — то, ради чего монета вынимается: набег или пари. Вне события она в кобуре.
+let event = null;
 let rotation = 0, busy = false, finds = [], nextFind = 0, sceneKey = '';
 
 const capacity = () => BALANCE.capPerBarn * S.own.barn;
 const ratePerMin = () => BALANCE.milkPerCowPerMin * S.own.cow;
 const price = () => BALANCE.priceBase + S.own.fair;
 const costOf = k => Math.floor(BALANCE.buildings[k].cost * BALANCE.buildings[k].growth ** S.own[k]);
-// Разогрев: множитель на продажу. Ноль успехов — обычная цена.
-const warmup = n => BALANCE.growth ** Math.min(n, BALANCE.warmupCap);
+const guardCost = k => Math.floor(BALANCE.guard[k].cost * BALANCE.guard[k].growth ** S.guard[k]);
+const defence = () => Object.entries(S.guard).reduce((n, [k, v]) => n + BALANCE.guard[k].power * v, 0);
+const raidPower = () => Math.round(BALANCE.raidBase * BALANCE.raidGrowth ** S.raids);
 const shipTotal = () => BALANCE.ship.reduce((sum, part) => sum + part.cost, 0);
 const shipPaid = () => BALANCE.ship.slice(0, S.built).reduce((sum, part) => sum + part.cost, 0);
 const nextPart = () => BALANCE.ship[S.built] ?? null;
@@ -313,7 +336,7 @@ const plural = (n, one, few, many) => {
 const loanOffer = () => { const part = nextPart(); return part ? part.cost : 0 };
 // Улететь, оставшись должным соседям, нельзя — последняя деталь ждёт закрытого долга.
 const lastPart = () => S.built === BALANCE.ship.length - 1;
-const saleValue = () => Math.floor(Math.floor(S.milk) * price() * warmup(S.streak));
+const saleValue = () => Math.floor(Math.floor(S.milk) * price());
 
 if (!Object.keys(saved).length) S.milk = Math.min(BALANCE.startMilk, capacity());
 
@@ -382,21 +405,44 @@ function render(){
   el('v-rate').textContent  = `${ratePerMin()} / мин`;
   el('v-cap').textContent   = capacity();
   el('v-price').textContent = price();
-  el('v-best').textContent  = S.best;
+  el('v-def').textContent   = defence();
+  el('v-raids').textContent = S.raids;
 
   // Монета доступна всегда — это и есть игра, а не награда за накопление.
   el('go').disabled = busy;
-  const capped = S.streak >= BALANCE.warmupCap, atStake = Math.floor(S.milk);
-  el('pot-label').firstChild.textContent = !atStake
-    ? 'Разогрев · терять нечего '
-    : capped
-      ? `Разогрев на пределе · на кону ${atStake} молока `
-      : `Ещё бросок — ×${warmup(S.streak + 1)} · на кону ${atStake} молока `;
-  el('pot').textContent = `×${warmup(S.streak)}`;
+  // Центр показывает то, ради чего монета вынута. Вне события — кобура.
+  const choice = el('choice'), go = el('go');
+  if (event?.kind === 'raid') {
+    el('pot-label').firstChild.textContent = `Набег · их сила ${event.power} против твоих ${defence()} `;
+    el('pot').textContent = `${event.power}`;
+    choice.hidden = true;
+    go.disabled = busy;
+    go.textContent = 'РЕВОЛЬВЕР · 50 НА 50';
+  } else if (event?.kind === 'merchant') {
+    el('pot-label').firstChild.textContent = `Купец кладёт свою монету · твоё молоко на ${saleValue()} `;
+    el('pot').textContent = `${saleValue()}`;
+    choice.hidden = false;
+    const [a, b] = BALANCE.merchantOdds;
+    el('bet-a').textContent = `${Math.round(a.p * 100)}% · ${Math.floor(saleValue() * a.k)}`;
+    el('bet-b').textContent = `${Math.round(b.p * 100)}% · ${Math.floor(saleValue() * b.k)}`;
+    el('bet-a').disabled = el('bet-b').disabled = busy;
+    go.disabled = busy;
+    go.textContent = 'ОТКАЗАТЬСЯ';
+  } else {
+    el('pot-label').firstChild.textContent = 'Монета в кобуре ';
+    el('pot').textContent = `${S.raids}`;
+    choice.hidden = true;
+    go.disabled = true;
+    go.textContent = nextEventIn();
+  }
 
-  // Случайность живёт только на монете в центре. Рынок обналичивает по набитой цене.
-  el('risk').disabled = busy || Math.floor(S.milk) < 1;
-  el('risk').textContent = `ПРОДАТЬ ЗА ${saleValue()}`;
+  if (event?.kind === 'raid') {
+    el('risk').disabled = busy;
+    el('risk').textContent = 'СДАТЬСЯ · ПОТЕРИ ВДВОЕ МЕНЬШЕ';
+  } else {
+    el('risk').disabled = busy || !!event || saleValue() < 1;
+    el('risk').textContent = `ПРОДАТЬ ЗА ${saleValue()}`;
+  }
 
   drawScene();
   el('v-debt').textContent = S.debt;
@@ -462,10 +508,18 @@ function drawScene(){
   };
 
   const huts = Math.min(S.own.barn, 3), cows = Math.min(S.own.cow, 6), fairs = Math.min(S.own.fair, 2);
+  const walls = Math.min(S.guard.wall, 3), men = Math.min(S.guard.militia, 4);
   let g = `<path d="M0 ${G} h300 v${96-G} h-300z" fill="#22301f"/>`;
   for (let i = 0; i < huts; i++) g += hut(10 + i * 24, 14 + i * 3);
   for (let i = 0; i < cows; i++) g += cow(100 + i * 16);
   for (let i = 0; i < fairs; i++) g += stall(186 + i * 20);
+  // Оборона стоит на левом краю, лицом к дороге, откуда приходят варвары.
+  for (let i = 0; i < walls; i++)
+    g += `<path d="M${4 + i * 7} ${G} v-14 h5 v14 z" fill="#3a2f22" stroke="#5b4630" stroke-width="1"/>`;
+  for (let i = 0; i < men; i++)
+    g += `<g transform="translate(${30 + i * 9},0)"><circle cx="0" cy="${G - 11}" r="2.4" fill="#e8ecf1"/>`
+      + `<path d="M0 ${G - 9} v6 M-2.5 ${G - 3} l2.5 3 M2.5 ${G - 3} l-2.5 3" stroke="#e8ecf1" stroke-width="1.4"/>`
+      + `<path d="M3 ${G - 14} v14" stroke="#8d99a8" stroke-width="1.2"/></g>`;
   g += rocket(S.built);
   // Позиция задана атрибутом transform, а покачивание — CSS-анимацией того же свойства.
   // На одном элементе анимация перебила бы позицию и все находки уехали бы в угол, поэтому две группы.
@@ -475,12 +529,24 @@ function drawScene(){
     + '<path d="M-1.6 -1.6 h3.2 v3.2 h-3.2z" fill="#5b4630" opacity=".55"/></g></g>';
 
   // Перерисовываем только когда что-то изменилось: иначе секундный тик срывает анимацию находок.
-  const key = `${S.own.cow}|${S.own.barn}|${S.own.fair}|${S.built}|${finds.map(f => f.id).join(',')}`;
+  const key = `${S.own.cow}|${S.own.barn}|${S.own.fair}|${S.built}|${S.guard.wall}|${S.guard.militia}|${finds.map(f => f.id).join(',')}`;
   if (key !== sceneKey) { sceneKey = key; el('scene').innerHTML = g }
 }
 
 // Единственный innerHTML в разметке игры, и он собирается только из BALANCE и чисел.
   // Всё, что приходит извне — ники в таблице рекордов — рисуется через textContent.
+  const left = Math.max(0, (S.tRaid || 0) - Date.now());
+  el('v-next').textContent = event?.kind === 'raid' ? 'сейчас'
+    : left > 60000 ? `${Math.ceil(left / 60000)} мин` : `${Math.ceil(left / 1000)} сек`;
+  el('guard').innerHTML = Object.entries(BALANCE.guard).map(([k, g]) => {
+    const cost = guardCost(k);
+    return `<article>
+      <header>${g.name}<span>${S.guard[k]}</span></header>
+      <p>${g.hint}</p>
+      <button data-guard="${k}" ${S.gold < cost ? 'disabled' : ''}>КУПИТЬ · ${cost}</button>
+    </article>`;
+  }).join('');
+
   el('build').innerHTML = Object.entries(BALANCE.buildings).map(([k, b]) => {
     const cost = costOf(k);
     return `<article>
@@ -492,44 +558,134 @@ function drawScene(){
 }
 
 // Единственная анимация броска на обе механики: свободную серию и рыночный торг.
-function flip(onResult){
+// Наша монета честная: 50 на 50. У купца своя, с объявленным перевесом —
+// для неё исход считает вызывающий, а сюда передаётся только анимация.
+function flip(onResult, _p, decide){
   if (busy) return;
   busy = true;
-  const bet = document.querySelector('input[name="bet"]:checked').value;
   const result = Math.random() < .5 ? 'heads' : 'tails';
   S.flips++;
   render();
   rotation += 6 * 360 + (result === 'tails' ? 180 : 0) - (rotation % 360);
   el('coin').style.setProperty('--spin', `${BALANCE.spinMs}ms`);
   el('coin').style.transform = `rotateY(${rotation}deg)`;
-  setTimeout(() => { busy = false; onResult(result === bet); save(); render() }, BALANCE.spinMs + 60);
+  setTimeout(() => { busy = false; decide ? decide() : onResult(result === 'heads'); save(); render() }, BALANCE.spinMs + 60);
 }
 
+// Сколько ждать следующего выхода монеты — чтобы кобура не выглядела поломкой.
+function nextEventIn(){
+  const now = Date.now();
+  const left = Math.max(0, Math.min(S.tRaid || Infinity, S.tMerchant || Infinity) - now);
+  if (!isFinite(left)) return 'ТИХО В ДЕРЕВНЕ';
+  const sec = Math.ceil(left / 1000);
+  return sec > 60 ? `ТИХО · ${Math.ceil(sec / 60)} МИН` : `ТИХО · ${sec} СЕК`;
+}
+
+// ---- набеги ----
+function startRaid(now){
+  S.tRaid = now + BALANCE.raidEveryMs;
+  const power = raidPower();
+  if (defence() >= power) {                       // стража справилась сама
+    S.raids++;
+    el('msg').textContent = `Набег силой ${power} отбит стражей. Обороны ${defence()}.`;
+    save(); return;
+  }
+  event = {kind:'raid', power};
+  el('msg').textContent = `Варвары! Сила ${power}, у тебя ${defence()}. Сдаться или тянуть револьвер.`;
+}
+
+function raidLoss(multiplier){
+  const gold = Math.floor(S.gold * BALANCE.raidTake * multiplier);
+  const milk = Math.floor(S.milk * BALANCE.raidTake * multiplier);
+  S.gold -= gold; S.milk -= milk;
+  let burned = 0;
+  for (let i = 0; i < BALANCE.raidBurn * multiplier; i++) {
+    const has = Object.keys(S.guard).filter(k => S.guard[k] > 0);
+    if (!has.length) break;
+    S.guard[has[has.length - 1]]--; burned++;
+  }
+  S.lost++;
+  return {gold, milk, burned};
+}
+
+function endRaid(text){ event = null; S.raids++; el('msg').textContent = text; save(); render() }
+
 el('go').onclick = () => {
-  el('msg').textContent = 'Монета в воздухе…';
-  flip(won => {
-    if (won) {
-      S.streak++;
-      if (S.streak > S.best) S.best = S.streak;
-      el('msg').textContent = S.streak >= BALANCE.warmupCap
-        ? `Угадал. Разогрев на пределе: ×${warmup(S.streak)}. Пора продавать.`
-        : `Угадал. Множитель ×${warmup(S.streak)}. Ещё бросок — или на рынок, пока цело.`;
-    } else {
-      const lost = Math.floor(S.milk);
-      el('msg').textContent = lost
-        ? `Не угадал. Партия ${lost} пропала вместе с разогревом.`
-        : 'Не угадал. Терять было нечего.';
-      S.milk = 0;
-      S.streak = 0;
-    }
-  });
+  if (busy) return;
+  if (event?.kind === 'raid') {
+    el('msg').textContent = 'Монета в воздухе. Одна попытка.';
+    flip(won => {
+      if (won) return endRaid(`Отбились. Монета легла как надо — деревня цела.`);
+      const l = raidLoss(2);                       // проигранный револьвер стоит вдвое
+      endRaid(`Не повезло. Забрали ${l.gold} золота и ${l.milk} молока` +
+        (l.burned ? `, сожгли построек: ${l.burned}.` : '.'));
+    });
+    return;
+  }
+  if (event?.kind === 'merchant') {                // отказ — молоко остаётся при тебе
+    event = null;
+    el('msg').textContent = 'Отказался от пари. Молоко никуда не делось.';
+    save(); render();
+  }
 };
 
+el('coin').onclick = () => { if (event?.kind === 'raid') el('go').click() };
+
+// ---- купец ----
+function startMerchant(now){
+  S.tMerchant = now + BALANCE.merchantEveryMs;
+  if (saleValue() < 1) return;                     // торговать нечем, придёт в другой раз
+  event = {kind:'merchant'};
+  el('msg').textContent = 'Заехал купец. Монета у него своя, и перевес он называет вслух.';
+}
+
+function takeBet(odds){
+  if (busy || event?.kind !== 'merchant') return;
+  const sum = saleValue();
+  el('msg').textContent = `Ставка принята: ${Math.round(odds.p * 100)}%. Купец бросает.`;
+  flip(() => {}, odds.p, () => {
+    const won = Math.random() < odds.p;
+    event = null;
+    if (won) {
+      const paid = Math.floor(sum * odds.k);
+      S.gold += paid; S.milk -= Math.floor(S.milk);
+      el('msg').textContent = `Выпало твоё. Купец отсчитал ${paid}.`;
+    } else {
+      S.milk -= Math.floor(S.milk);
+      el('msg').textContent = `Не твоя сторона. Молоко уехало с купцом.`;
+    }
+    save(); render();
+  });
+}
+
+el('bet-a').onclick = () => takeBet(BALANCE.merchantOdds[0]);
+el('bet-b').onclick = () => takeBet(BALANCE.merchantOdds[1]);
+
+el('risk').onclick = () => {
+  if (busy) return;
+  if (event?.kind === 'raid') {                    // сдаться — потери вдвое меньше, зато без случая
+    const l = raidLoss(1);
+    endRaid(`Открыл ворота. Забрали ${l.gold} золота и ${l.milk} молока` +
+      (l.burned ? `, сожгли построек: ${l.burned}.` : '.'));
+    return;
+  }
+  if (!event) sell();
+};
+
+// ---- часы событий ----
+function events(now){
+  if (!S.tRaid) S.tRaid = now + BALANCE.raidFirstMs;
+  if (!S.tMerchant) S.tMerchant = now + BALANCE.merchantFirstMs;
+  if (event) return;
+  if (now >= S.tRaid) startRaid(now);
+  else if (now >= S.tMerchant) startMerchant(now);
+}
+
 // Тап по самой монете — то же, что кнопка: в игре про монетку это первое, что пробуют.
-el('coin').onclick = () => el('go').click();
 
 function sell(){
   const sum = saleValue();
+  if (sum < 1) return;
   let repaid = 0;
   if (S.debt > 0) {
     repaid = Math.min(S.debt, Math.floor(sum * BALANCE.loanShare));
@@ -538,16 +694,21 @@ function sell(){
   }
   S.gold += sum - repaid;
   S.milk -= Math.floor(S.milk);
-  S.streak = 0;   // разогрев тратится на сделку
   el('msg').textContent = repaid
-    ? `Продал за ${sum}, соседу ушло ${repaid}.`
-    : `Продал за ${sum}.`;
+    ? `Продал молоко за ${sum}, соседу ушло ${repaid}.`
+    : `Продал молоко за ${sum}.`;
   save(); render();
 }
 
-el('risk').onclick = () => {
-  if (busy || Math.floor(S.milk) < 1) return;
-  sell();
+
+el('guard').onclick = e => {
+  const k = e.target.dataset?.guard;
+  if (!k || busy) return;
+  const cost = guardCost(k);
+  if (S.gold < cost) return;
+  S.gold -= cost; S.guard[k]++;
+  el('msg').textContent = `${BALANCE.guard[k].name} на месте. Оборона ${defence()}, следующий набег ${raidPower()}.`;
+  save(); render();
 };
 
 el('build').onclick = e => {
@@ -624,12 +785,12 @@ document.body.dataset.view = 'двор';
 // ---- пошаговое обучение ----
 // Живёт в общем /tour.js: тот же приём нужен и остальным играм, и двух копий быть не должно.
 const TOUR = [
-  {sel:'#go',       text:'Это монета, и она здесь главная. Каждое угадывание удваивает цену молока. Промах сжигает всю партию.'},
-  {sel:'#risk',     text:'Когда цена нравится — продавай. Дальше рискуешь тем, что уже накопил.'},
-  {sel:'#scene',    text:'Это твоя деревня. По ней попадается мелочь — подбирай пальцем, пока коровы доятся.'},
-  {sel:'#build',    text:'Золото вкладывай в хозяйство: коровы дают больше молока, амбар копит больше, ярмарка поднимает цену.'},
+  {sel:'#risk',     text:'Коровы дают молоко, молоко продаётся за золото. Это твой хлеб — тихий и надёжный.'},
+  {sel:'#scene',    text:'Это деревня. По ней попадается мелочь — подбирай пальцем, пока коровы доятся.'},
+  {sel:'#build',    text:'Золото вкладывай в хозяйство: коров, амбары, ярмарки. Больше молока, дороже цена.'},
+  {sel:'#guard',    text:'Или в оборону. Раз в пару минут приходят варвары, и каждый набег сильнее прошлого.'},
   {sel:'#buy-part', text:'Или в корабль. Шесть деталей — и ты улетел в космос первым из соседей.'},
-  {sel:'#loan',     text:'Не хватает на деталь — соседи дадут в долг ровно на неё. Половина продаж будет уходить им, пока не рассчитаешься.'},
+  {sel:'#go',       text:'А монета лежит в кобуре. Достанешь её дважды: когда варвары сильнее твоей стражи, и когда заедет купец с пари.'},
 ];
 
 // На узком экране цель может лежать в закрытой вкладке — открываем её перед шагом.
@@ -649,9 +810,9 @@ let seen = false;
 try { seen = !!localStorage.getItem(SEEN) } catch { seen = true }
 if (!seen) showIntro();
 
-accrue(); spawnFinds(Date.now()); render(); save();
+accrue(); spawnFinds(Date.now()); events(Date.now()); render(); save();
 void loadLeaders();
-setInterval(() => { accrue(); spawnFinds(Date.now()); render(); save() }, 1000);
+setInterval(() => { const now = Date.now(); accrue(); spawnFinds(now); events(now); render(); save() }, 1000);
 
 </script>
 </body>
