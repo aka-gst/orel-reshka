@@ -176,7 +176,7 @@ button,label,#coin,[data-find]{touch-action:manipulation;-webkit-tap-highlight-c
   <div class="col">
   <aside class="panel" data-tab="двор">
     <small>ХОЗЯЙСТВО</small>
-    <svg id="scene" class="scene" viewBox="0 0 300 96" role="img" aria-label="Вид деревни"></svg>
+    <svg id="scene" class="scene" viewBox="0 0 300 96" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Вид деревни"></svg>
     <div class="row"><span>Золото</span><b id="v-gold">0</b></div>
     <div class="row"><span>Молоко</span><b id="v-milk">0</b></div>
     <div class="bar"><i id="v-bar" style="width:0"></i></div>
@@ -377,7 +377,8 @@ document.querySelectorAll('.periods button').forEach(tab => tab.onclick = () => 
 function spawnFinds(now){
   if (finds.length >= BALANCE.forageMax || now < nextFind) return;
   nextFind = now + BALANCE.forageEveryMs;
-  finds.push({id: Math.round(now), x: 24 + Math.random() * 240, y: 66 + Math.random() * 8});
+  if (!now) nextFind = 0;                      // сцена набивает находки разом, без ожидания
+  finds.push({id: now ? Math.round(now) : finds.length + 1, x: 24 + Math.random() * 240, y: 66 + Math.random() * 8});
 }
 
 el('scene').onclick = e => {
@@ -397,72 +398,6 @@ function accrue(){
   S.t = now;
   S.milk = Math.min(capacity(), S.milk + ratePerMin() * minutes);
 }
-
-function render(){
-  el('v-gold').textContent  = Math.floor(S.gold);
-  el('v-milk').textContent  = `${Math.floor(S.milk)} / ${capacity()}`;
-  el('v-bar').style.width   = `${Math.min(100, S.milk / capacity() * 100)}%`;
-  el('v-rate').textContent  = `${ratePerMin()} / мин`;
-  el('v-cap').textContent   = capacity();
-  el('v-price').textContent = price();
-  el('v-def').textContent   = defence();
-  el('v-raids').textContent = S.raids;
-
-  // Монета доступна всегда — это и есть игра, а не награда за накопление.
-  el('go').disabled = busy;
-  // Центр показывает то, ради чего монета вынута. Вне события — кобура.
-  const choice = el('choice'), go = el('go');
-  if (event?.kind === 'raid') {
-    el('pot-label').firstChild.textContent = `Набег · их сила ${event.power} против твоих ${defence()} `;
-    el('pot').textContent = `${event.power}`;
-    choice.hidden = true;
-    go.disabled = busy;
-    go.textContent = 'РЕВОЛЬВЕР · 50 НА 50';
-  } else if (event?.kind === 'merchant') {
-    el('pot-label').firstChild.textContent = `Купец кладёт свою монету · твоё молоко на ${saleValue()} `;
-    el('pot').textContent = `${saleValue()}`;
-    choice.hidden = false;
-    const [a, b] = BALANCE.merchantOdds;
-    el('bet-a').textContent = `${Math.round(a.p * 100)}% · ${Math.floor(saleValue() * a.k)}`;
-    el('bet-b').textContent = `${Math.round(b.p * 100)}% · ${Math.floor(saleValue() * b.k)}`;
-    el('bet-a').disabled = el('bet-b').disabled = busy;
-    go.disabled = busy;
-    go.textContent = 'ОТКАЗАТЬСЯ';
-  } else {
-    el('pot-label').firstChild.textContent = 'Монета в кобуре ';
-    el('pot').textContent = `${S.raids}`;
-    choice.hidden = true;
-    go.disabled = true;
-    go.textContent = nextEventIn();
-  }
-
-  if (event?.kind === 'raid') {
-    el('risk').disabled = busy;
-    el('risk').textContent = 'СДАТЬСЯ · ПОТЕРИ ВДВОЕ МЕНЬШЕ';
-  } else {
-    el('risk').disabled = busy || !!event || saleValue() < 1;
-    el('risk').textContent = `ПРОДАТЬ ЗА ${saleValue()}`;
-  }
-
-  drawScene();
-  el('v-debt').textContent = S.debt;
-  const offer = loanOffer();
-  // В долгу кнопка становится «вернуть»: иначе она просто гасла и выглядела сломанной.
-  if (S.debt) {
-    el('loan').disabled = busy || S.gold < S.debt;
-    el('loan').textContent = S.gold >= S.debt ? `ВЕРНУТЬ ДОЛГ ${S.debt}` : `ОСТАЛОСЬ ВЕРНУТЬ ${S.debt}`;
-  } else {
-    el('loan').disabled = busy || !offer;
-    el('loan').textContent = offer ? `ЗАНЯТЬ ${offer} · ВЕРНУТЬ ${Math.round(offer * BALANCE.loanRate)}` : 'ЗАНИМАТЬ НЕ У КОГО';
-  }
-
-  const part = nextPart();
-  el('ship-count').textContent = `${S.built} / ${BALANCE.ship.length}`;
-  el('ship-bar').style.width = `${shipPaid() / shipTotal() * 100}%`;
-  el('buy-part').disabled = busy || !part || S.gold < part.cost || (lastPart() && S.debt > 0);
-  el('buy-part').textContent = part ? `${part.name} · ${part.cost}` : 'КОРАБЛЬ ГОТОВ';
-  el('ship-stage').textContent = part ? 'Деталей собрано' : 'Собран целиком';
-  if (lastPart() && S.debt > 0) el('ship-msg').textContent = 'С долгом не улетают — сначала рассчитайся с соседями.';
 
   // Сцена собирается из чисел состояния — внешнего текста здесь нет, как и в постройках ниже.
 function drawScene(){
@@ -532,6 +467,73 @@ function drawScene(){
   const key = `${S.own.cow}|${S.own.barn}|${S.own.fair}|${S.built}|${S.guard.wall}|${S.guard.militia}|${finds.map(f => f.id).join(',')}`;
   if (key !== sceneKey) { sceneKey = key; el('scene').innerHTML = g }
 }
+
+function render(){
+  el('v-gold').textContent  = Math.floor(S.gold);
+  el('v-milk').textContent  = `${Math.floor(S.milk)} / ${capacity()}`;
+  el('v-bar').style.width   = `${Math.min(100, S.milk / capacity() * 100)}%`;
+  el('v-rate').textContent  = `${ratePerMin()} / мин`;
+  el('v-cap').textContent   = capacity();
+  el('v-price').textContent = price();
+  el('v-def').textContent   = defence();
+  el('v-raids').textContent = S.raids;
+
+  // Монета доступна всегда — это и есть игра, а не награда за накопление.
+  el('go').disabled = busy;
+  // Центр показывает то, ради чего монета вынута. Вне события — кобура.
+  const choice = el('choice'), go = el('go');
+  if (event?.kind === 'raid') {
+    el('pot-label').firstChild.textContent = `Набег · их сила ${event.power} против твоих ${defence()} `;
+    el('pot').textContent = `${event.power}`;
+    choice.hidden = true;
+    go.disabled = busy;
+    go.textContent = 'РЕВОЛЬВЕР · 50 НА 50';
+  } else if (event?.kind === 'merchant') {
+    el('pot-label').firstChild.textContent = `Купец кладёт свою монету · твоё молоко на ${saleValue()} `;
+    el('pot').textContent = `${saleValue()}`;
+    choice.hidden = false;
+    const [a, b] = BALANCE.merchantOdds;
+    el('bet-a').textContent = `${Math.round(a.p * 100)}% · ${Math.floor(saleValue() * a.k)}`;
+    el('bet-b').textContent = `${Math.round(b.p * 100)}% · ${Math.floor(saleValue() * b.k)}`;
+    el('bet-a').disabled = el('bet-b').disabled = busy;
+    go.disabled = busy;
+    go.textContent = 'ОТКАЗАТЬСЯ';
+  } else {
+    el('pot-label').firstChild.textContent = 'Монета в кобуре ';
+    el('pot').textContent = `${S.raids}`;
+    choice.hidden = true;
+    go.disabled = true;
+    go.textContent = nextEventIn();
+  }
+
+  if (event?.kind === 'raid') {
+    el('risk').disabled = busy;
+    el('risk').textContent = 'СДАТЬСЯ · ПОТЕРИ ВДВОЕ МЕНЬШЕ';
+  } else {
+    el('risk').disabled = busy || !!event || saleValue() < 1;
+    el('risk').textContent = `ПРОДАТЬ ЗА ${saleValue()}`;
+  }
+
+  drawScene();
+  el('v-debt').textContent = S.debt;
+  const offer = loanOffer();
+  // В долгу кнопка становится «вернуть»: иначе она просто гасла и выглядела сломанной.
+  if (S.debt) {
+    el('loan').disabled = busy || S.gold < S.debt;
+    el('loan').textContent = S.gold >= S.debt ? `ВЕРНУТЬ ДОЛГ ${S.debt}` : `ОСТАЛОСЬ ВЕРНУТЬ ${S.debt}`;
+  } else {
+    el('loan').disabled = busy || !offer;
+    el('loan').textContent = offer ? `ЗАНЯТЬ ${offer} · ВЕРНУТЬ ${Math.round(offer * BALANCE.loanRate)}` : 'ЗАНИМАТЬ НЕ У КОГО';
+  }
+
+  const part = nextPart();
+  el('ship-count').textContent = `${S.built} / ${BALANCE.ship.length}`;
+  el('ship-bar').style.width = `${shipPaid() / shipTotal() * 100}%`;
+  el('buy-part').disabled = busy || !part || S.gold < part.cost || (lastPart() && S.debt > 0);
+  el('buy-part').textContent = part ? `${part.name} · ${part.cost}` : 'КОРАБЛЬ ГОТОВ';
+  el('ship-stage').textContent = part ? 'Деталей собрано' : 'Собран целиком';
+  if (lastPart() && S.debt > 0) el('ship-msg').textContent = 'С долгом не улетают — сначала рассчитайся с соседями.';
+
 
 // Единственный innerHTML в разметке игры, и он собирается только из BALANCE и чисел.
   // Всё, что приходит извне — ники в таблице рекордов — рисуется через textContent.
@@ -811,8 +813,134 @@ try { seen = !!localStorage.getItem(SEEN) } catch { seen = true }
 if (!seen) showIntro();
 
 accrue(); spawnFinds(Date.now()); events(Date.now()); render(); save();
+
+// ---- съёмочный режим ----
+// Игра собрана на вёрстке, а не на холсте: витрина обязана снимать покадрово по часам,
+// иначе композитор отдаст сорок одинаковых кадров. Это сказано в ответе showcase().
+const SHOW_CSS = `
+  body.showcase{overflow:hidden}
+  body.showcase .top,body.showcase .note,body.showcase .tabs,body.showcase .reset,
+  body.showcase .col,body.showcase .center{display:none!important}
+  body.showcase .wrap{display:block;max-width:none;width:100%;height:100%;padding:0}
+  body.showcase #stage{display:block;position:fixed;inset:0;width:100%;height:100%}
+  body.showcase #stage svg{width:100%;height:100%;display:block;border:0}
+`;
+
+let restoreRandom = null, showTimers = [];
+
+// Глушим ИСТОЧНИК, а не перечень мест: закрепка переживёт случайность, добавленную завтра.
+function freezeRandom(seed){
+  if (restoreRandom) restoreRandom();
+  let x = (seed >>> 0) || 1;
+  const original = Math.random;
+  Math.random = () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296 };
+  restoreRandom = () => { Math.random = original; restoreRandom = null };
+}
+
+function stopWorld(){
+  clearInterval(loopId); loopId = null;      // физика стоит, отрисовка живёт
+  showTimers.forEach(clearTimeout); showTimers = [];
+  event = null; finds = []; sceneKey = '';
+}
+
+function stageOn(width, height){
+  if (!document.getElementById('showcase-css')) {
+    const st = document.createElement('style');
+    st.id = 'showcase-css'; st.textContent = SHOW_CSS;
+    document.head.appendChild(st);
+  }
+  let stage = document.getElementById('stage');
+  if (!stage) {
+    stage = document.createElement('div');
+    stage.id = 'stage';
+    document.querySelector('.wrap').appendChild(stage);
+    stage.appendChild(el('scene'));
+  }
+  document.body.classList.add('showcase');
+  // В кадре карточки сцена заполняет рамку с обрезкой, а не висит полоской над пустым небом.
+  // Своя рамка для кадра: у сцены соотношение 3:1, у карточки ближе к 1.6:1.
+  // Обрезкой съедало деревню, поэтому расширяем viewBox вверх — в небо.
+  el('scene').setAttribute('viewBox', '0 -90 300 186');
+  el('scene').setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  // Размер задаём явно: в скрытой вкладке спросить его не у кого.
+  if (width)  { document.documentElement.style.width  = width + 'px';  stage.style.width  = width + 'px' }
+  if (height) { document.documentElement.style.height = height + 'px'; stage.style.height = height + 'px' }
+}
+
+// Ставит неподвижный кадр. Синхронная — её можно дожидаться.
+function scene(o = {}){
+  const {width = 480, height = 300, seed = 7, cow = 1, barn = 1, fair = 0,
+         wall = 0, militia = 0, built = 0} = o;
+  stopWorld();
+  freezeRandom(seed);
+  stageOn(width, height);
+  S.own = {cow, barn, fair};
+  S.guard = {wall, militia};
+  S.built = built;
+  S.milk = 0; S.gold = 0; S.debt = 0;
+  // Находки оставляем в кадре: они характерны для игры и это единственное,
+  // чем сид управляет. Без них закрепку нечем проверить — сид ничего не менял бы.
+  finds = [];
+  nextFind = 0;
+  for (let i = 0; i < BALANCE.forageMax; i++) spawnFinds(0);
+  drawScene();
+  return fingerprint();
+}
+
+// Отпечаток по НАРИСОВАННОМУ: содержимое сцены, её пиксельный размер и закреплённый вид.
+function fingerprint(){
+  const svg = el('scene'), r = svg.getBoundingClientRect();
+  const body = svg.innerHTML;
+  let h = 5381;
+  for (let i = 0; i < body.length; i++) h = ((h * 33) ^ body.charCodeAt(i)) >>> 0;
+  return {draw: h.toString(16), nodes: svg.children.length,
+          size: `${Math.round(r.width)}x${Math.round(r.height)}`};
+}
+
+// Петля роста: деревня прирастает, ракета собирается по деталям, в конце — старт.
+const GROWTH = [
+  {at:   0, cow:1, barn:1, fair:0, built:0},
+  {at: 320, cow:2, barn:1, fair:0, built:1},
+  {at: 640, cow:3, barn:2, fair:1, built:2},
+  {at: 960, cow:4, barn:2, fair:1, built:3},
+  {at:1280, cow:5, barn:3, fair:2, built:4},
+  {at:1600, cow:6, barn:3, fair:2, built:5},
+  {at:1920, cow:6, barn:3, fair:2, built:6},
+];
+const GROWTH_MS = 2600;
+
+// ЗАПУСКАЮТ, а не дожидаются: обещание тут вернуть нельзя, иначе снимут пустое поле.
+function showcase(o = {}){
+  const {width = 480, height = 300, seed = 7} = o;
+  const started = Date.now();
+  scene({width, height, seed, ...GROWTH[0]});
+  GROWTH.slice(1).forEach(step => {
+    showTimers.push(setTimeout(() => {
+      Object.assign(S.own, {cow:step.cow, barn:step.barn, fair:step.fair});
+      S.built = step.built;
+      drawScene();
+    }, step.at));
+  });
+  return {
+    intended: GROWTH_MS,            // намеренная длительность — на неё и полагаться
+    measuredAt: started,            // измеренную считает снимающий; в скрытой вкладке она врёт
+    capture: 'frames',              // вёрстка, не холст: покадрово по часам, не трансляцией
+    silent: true,                   // звука в игре нет вовсе
+    steps: GROWTH.length,
+    fingerprint: fingerprint()
+  };
+}
+
+window.village = {scene, showcase, fingerprint,
+  release(){ stopWorld(); if (restoreRandom) restoreRandom(); document.body.classList.remove('showcase') }};
+
 void loadLeaders();
-setInterval(() => { const now = Date.now(); accrue(); spawnFinds(now); events(now); render(); save() }, 1000);
+let loopId = setInterval(() => { const now = Date.now(); accrue(); spawnFinds(now); events(now); render(); save() }, 1000);
+
+// Съёмочные адреса — в самом конце: они зовут scene(), а он останавливает цикл выше.
+const shot = new URLSearchParams(location.search);
+if (shot.has('кадр')) scene({seed: Number(shot.get('seed')) || 7, built: 6, cow: 6, barn: 3, fair: 2});
+else if (shot.has('петля')) showcase({seed: Number(shot.get('seed')) || 7});
 
 </script>
 </body>
