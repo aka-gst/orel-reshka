@@ -344,6 +344,55 @@ const el = id => document.getElementById(id);
 // Хранилище может быть недоступно (приватный режим, отключённые куки) — игра должна работать и без него.
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)) } catch {} };
 
+
+// ---- звук ----
+// Проверка одна на все игры, чтобы не разошлась по вариантам. Параметр сильнее
+// сохранённого выбора и умолчания, в память не пишется, ловит оба написания.
+// Браузер кодирует кириллицу в адресе: ?тихо приезжает как ?%D1%82%D0%B8%D1%85%D0%BE,
+// и проверка по сырой строке ловит только латинское quiet. Расшифровываем до проверки.
+const quiet = (() => {
+  const raw = window.location.search + window.location.hash;
+  let text = raw;
+  try { text = decodeURIComponent(raw) } catch { /* битый процент — проверяем как есть */ }
+  return /(^|[?&#])(тихо|quiet)(=1|=true)?([&#]|$)/i.test(text);
+})();
+
+let audio = null, bus = null, staged = false;
+// Съёмочные адреса молчат сами, без отдельного параметра.
+const silent = () => quiet || staged;
+
+// Не приглушаем, а НЕ СОЗДАЁМ контекст: приглушённый оживает сам —
+// при первом жесте, при возврате во вкладку, при переразмере окна.
+function ensureAudio(){
+  if (silent()) return null;
+  const Engine = window.AudioContext || window.webkitAudioContext;
+  if (!Engine) return null;
+  if (!audio) {
+    audio = new Engine();
+    bus = audio.createGain();          // общий узел: к нему цепляется анализатор при приёмке
+    bus.gain.value = 1;
+    bus.connect(audio.destination);
+  }
+  if (audio.state === 'suspended') void audio.resume();
+  return audio;
+}
+
+function tone(freq, ms = 90, type = 'triangle', vol = .05){
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime + ms / 1000);
+  o.connect(g).connect(bus);
+  o.start(); o.stop(ctx.currentTime + ms / 1000);
+}
+
+function haptic(pattern){ if (!silent()) try { navigator.vibrate?.(pattern) } catch {} }
+
+['pointerdown','touchstart','keydown'].forEach(t =>
+  window.addEventListener(t, () => { if (!silent() && audio?.state === 'suspended') void audio.resume() }, {passive:true}));
+
 // ---- общая таблица рекордов ----
 // Вход не требуется: сессия анонимная, ник — просто строка, которую ввёл игрок.
 // Запись рекордов временно выключена: страница только читает общий топ.
@@ -388,6 +437,7 @@ el('scene').onclick = e => {
   if (!finds.some(f => f.id === id)) return;
   finds = finds.filter(f => f.id !== id);
   S.gold += BALANCE.forageGold;
+  tone(900, 60, 'sine', .04);
   el('msg').textContent = `Нашёл ${BALANCE.forageGold} монеты в траве.`;
   save(); render();
 };
@@ -567,6 +617,7 @@ function flip(onResult, _p, decide){
   busy = true;
   const result = Math.random() < .5 ? 'heads' : 'tails';
   S.flips++;
+  tone(420, 140); haptic(18);
   render();
   rotation += 6 * 360 + (result === 'tails' ? 180 : 0) - (rotation % 360);
   el('coin').style.setProperty('--spin', `${BALANCE.spinMs}ms`);
@@ -593,6 +644,7 @@ function startRaid(now){
     save(); return;
   }
   event = {kind:'raid', power};
+  tone(150, 320, 'sawtooth', .04); haptic([60, 40, 60]);
   el('msg').textContent = `Варвары! Сила ${power}, у тебя ${defence()}. Сдаться или тянуть револьвер.`;
 }
 
@@ -617,7 +669,8 @@ el('go').onclick = () => {
   if (event?.kind === 'raid') {
     el('msg').textContent = 'Монета в воздухе. Одна попытка.';
     flip(won => {
-      if (won) return endRaid(`Отбились. Монета легла как надо — деревня цела.`);
+      if (won) { tone(760, 180); haptic([18, 24, 32]); return endRaid(`Отбились. Монета легла как надо — деревня цела.`) }
+      tone(180, 240); haptic([48, 35, 55]);
       const l = raidLoss(2);                       // проигранный револьвер стоит вдвое
       endRaid(`Не повезло. Забрали ${l.gold} золота и ${l.milk} молока` +
         (l.burned ? `, сожгли построек: ${l.burned}.` : '.'));
@@ -696,6 +749,7 @@ function sell(){
   }
   S.gold += sum - repaid;
   S.milk -= Math.floor(S.milk);
+  tone(560, 90);
   el('msg').textContent = repaid
     ? `Продал молоко за ${sum}, соседу ушло ${repaid}.`
     : `Продал молоко за ${sum}.`;
@@ -709,6 +763,7 @@ el('guard').onclick = e => {
   const cost = guardCost(k);
   if (S.gold < cost) return;
   S.gold -= cost; S.guard[k]++;
+  tone(640, 70); setTimeout(() => tone(880, 70), 70);
   el('msg').textContent = `${BALANCE.guard[k].name} на месте. Оборона ${defence()}, следующий набег ${raidPower()}.`;
   save(); render();
 };
@@ -760,6 +815,7 @@ el('buy-part').onclick = () => {
   if (lastPart() && S.debt > 0) { el('ship-msg').textContent = 'С долгом не улетают. Сначала рассчитайся с соседями.'; return }
   S.gold -= part.cost;
   S.built++;
+  tone(700, 90); setTimeout(() => tone(1050, 140), 90);
   const left = nextPart();
   el('ship-msg').textContent = left
     ? `${part.name} — готово. Дальше ${left.name.toLowerCase()} за ${left.cost}.`
@@ -838,6 +894,7 @@ function freezeRandom(seed){
 }
 
 function stopWorld(){
+  staged = true;                     // съёмочные адреса молчат сами
   clearInterval(loopId); loopId = null;      // физика стоит, отрисовка живёт
   showTimers.forEach(clearTimeout); showTimers = [];
   event = null; finds = []; sceneKey = '';
@@ -932,7 +989,8 @@ function showcase(o = {}){
 }
 
 window.village = {scene, showcase, fingerprint,
-  release(){ stopWorld(); if (restoreRandom) restoreRandom(); document.body.classList.remove('showcase') }};
+  release(){ stopWorld(); staged = false; if (restoreRandom) restoreRandom(); document.body.classList.remove('showcase') },
+  audio: () => ({quiet, staged, created: !!audio, bus})};
 
 void loadLeaders();
 let loopId = setInterval(() => { const now = Date.now(); accrue(); spawnFinds(now); events(now); render(); save() }, 1000);
