@@ -897,6 +897,11 @@ function freezeRandom(seed){
 
 function stopWorld(){
   staged = true;                     // съёмочные адреса молчат сами
+  // Обучение первого запуска накрыло бы кадр: на свежем браузере оно показывается
+  // поверх всего, и витрина сняла бы карточку с текстом вместо деревни.
+  window.Tour?.stop();
+  const intro = document.getElementById('intro');
+  if (intro) intro.hidden = true;
   clearInterval(loopId); loopId = null;      // физика стоит, отрисовка живёт
   showTimers.forEach(clearTimeout); showTimers = [];
   event = null; finds = []; sceneKey = '';
@@ -957,16 +962,18 @@ function fingerprint(){
 }
 
 // Петля роста: деревня прирастает, ракета собирается по деталям, в конце — старт.
+// Нулевой кадр — это ещё и заглушка на карточке: сайт рисует её отсюда, чтобы
+// стык был незаметен. Значит начинать с пустого поля нельзя: пустое поле не
+// говорит зрителю, что это деревня. Стартуем с читаемого двора и ракеты на
+// стапеле, а петля достраивает её и запускает.
 const GROWTH = [
-  {at:   0, cow:1, barn:1, fair:0, built:0},
-  {at: 320, cow:2, barn:1, fair:0, built:1},
-  {at: 640, cow:3, barn:2, fair:1, built:2},
-  {at: 960, cow:4, barn:2, fair:1, built:3},
-  {at:1280, cow:5, barn:3, fair:2, built:4},
-  {at:1600, cow:6, barn:3, fair:2, built:5},
-  {at:1920, cow:6, barn:3, fair:2, built:6},
+  {at:   0, cow:4, barn:3, fair:1, built:3},
+  {at: 380, cow:5, barn:3, fair:1, built:4},
+  {at: 760, cow:5, barn:3, fair:2, built:4},
+  {at:1140, cow:6, barn:3, fair:2, built:5},
+  {at:1520, cow:6, barn:3, fair:2, built:6},
 ];
-const GROWTH_MS = 2600;
+const GROWTH_MS = 2200;
 
 // ЗАПУСКАЮТ, а не дожидаются: обещание тут вернуть нельзя, иначе снимут пустое поле.
 function showcase(o = {}){
@@ -999,7 +1006,8 @@ let loopId = setInterval(() => { const now = Date.now(); accrue(); spawnFinds(no
 
 // Съёмочные адреса — в самом конце: они зовут scene(), а он останавливает цикл выше.
 const shot = new URLSearchParams(location.search);
-if (shot.has('кадр')) scene({seed: Number(shot.get('seed')) || 7, built: 6, cow: 6, barn: 3, fair: 2});
+// ?кадр рисует ровно GROWTH[0]: заглушка и первый кадр петли совпадают побайтно.
+if (shot.has('кадр')) scene({seed: Number(shot.get('seed')) || 7, ...GROWTH[0]});
 else if (shot.has('петля')) showcase({seed: Number(shot.get('seed')) || 7});
 
 </script>
